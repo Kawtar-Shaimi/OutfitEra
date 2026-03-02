@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.intern</groupId>
-	<artifactId>demo</artifactId>
+	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>OutfitEra</name>
-	<description>Demo project for Spring Boot</description>
+	<description>OutfitEra - Backend Spring Boot Application</description>
 	<url/>
 	<licenses>
 		<license/>
