@@ -1,0 +1,49 @@
+# Master .gitignore for OutfitEra
+
+# IDEs and System files
+.idea/
+.vscode/
+.history/
+.DS_Store
+Thumbs.db
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+.factorypath
+.apt_generated
+.springBeans
+.sts4-cache
+
+# Backend specific
+backEnd/target/
+backEnd/build/
+backEnd/.env
+backEnd/DOCUMENTATION_SOUTENANCE.txt
+
+# Frontend specific
+frontEnd/node_modules/
+frontEnd/dist/
+frontEnd/tmp/
+frontEnd/out-tsc/
+frontEnd/bazel-out/
+frontEnd/.angular/
+frontEnd/.sass-cache/
+frontEnd/coverage/
+frontEnd/typings/
+frontEnd/__screenshots__/
+frontEnd/npm-debug.log
+frontEnd/yarn-error.log
+frontEnd/src/environments/environment.ts
+frontEnd/src/environments/environment.development.ts
+frontEnd/.env
+frontEnd/*.env
+
+# Maven Wrapper
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+!.mvn/wrapper/maven-wrapper.jar
