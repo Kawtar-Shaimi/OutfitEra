@@ -1,8 +1,8 @@
 package com.fitmeai.controller;
 
-import com.fitmeai.dto.AuthRequest;
-import com.fitmeai.dto.AuthResponse;
-import com.fitmeai.dto.RegisterRequest;
+import com.fitmeai.dto.request.AuthRequest;
+import com.fitmeai.dto.response.AuthResponse;
+import com.fitmeai.dto.request.RegisterRequest;
 import com.fitmeai.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

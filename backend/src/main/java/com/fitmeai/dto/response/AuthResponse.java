@@ -1,4 +1,4 @@
-package com.fitmeai.dto;
+package com.fitmeai.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

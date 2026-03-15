@@ -1,8 +1,8 @@
 package com.fitmeai.service;
 
-import com.fitmeai.dto.AuthRequest;
-import com.fitmeai.dto.AuthResponse;
-import com.fitmeai.dto.RegisterRequest;
+import com.fitmeai.dto.request.AuthRequest;
+import com.fitmeai.dto.response.AuthResponse;
+import com.fitmeai.dto.request.RegisterRequest;
 import com.fitmeai.model.User;
 import com.fitmeai.repository.UserRepository;
 import com.fitmeai.security.JwtUtil;
