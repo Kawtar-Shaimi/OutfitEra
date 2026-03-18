@@ -13,7 +13,23 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<AuthResponse | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    const token = this.getToken();
+    if (token && !this.isTokenExpired(token)) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        this.currentUserSubject.next({
+          token: token,
+          email: payload.sub,
+          firstName: payload.firstName || '',
+          lastName: payload.lastName || ''
+        });
+      } catch (e) {
+        console.error('Erreur lecture token initial', e);
+        this.logout();
+      }
+    }
+  }
 
 
   register(req: RegisterRequest): Observable<AuthResponse> {
