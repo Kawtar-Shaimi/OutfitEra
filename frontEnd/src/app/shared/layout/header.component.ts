@@ -1,6 +1,8 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { CartService } from '../../core/services/cart.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-header',
@@ -94,7 +96,10 @@ import { RouterModule } from '@angular/router';
           </button>
 
           <!-- Cart -->
-          <button class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition">
+          <button
+            routerLink="/cart"
+            class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"
+          >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
@@ -112,13 +117,22 @@ import { RouterModule } from '@angular/router';
             </svg>
           </button>
 
-          <!-- Login button -->
-          <a
-            routerLink="/login"
-            class="hidden sm:block ml-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
-          >
-            Connexion
-          </a>
+          <!-- Login/Logout button -->
+          @if (!isLoggedIn) {
+            <a
+              routerLink="/login"
+              class="hidden sm:block ml-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+            >
+              Connexion
+            </a>
+          } @else {
+            <button
+              (click)="onLogout()"
+              class="hidden sm:block ml-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition"
+            >
+              Déconnexion
+            </button>
+          }
         </div>
       </div>
 
@@ -167,10 +181,33 @@ import { RouterModule } from '@angular/router';
     <div class="lg:hidden h-12"></div>
   `
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
   @Input() sidebarOpen = false;
   @Output() toggleSidebar = new EventEmitter<void>();
 
   notificationCount = 0;
   cartCount = 0;
+  isLoggedIn = false;
+
+  constructor(
+    private cartService: CartService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
+
+  ngOnInit() {
+    this.authService.currentUser$.subscribe(user => {
+      this.isLoggedIn = !!user;
+    });
+
+    this.cartService.cart$.subscribe(cart => {
+      this.cartCount = cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+    });
+    this.cartService.loadCart();
+  }
+
+  onLogout() {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
 }
