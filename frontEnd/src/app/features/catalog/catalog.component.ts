@@ -7,6 +7,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { loadFavorites, toggleFavorite } from '../../store/favorites/favorites.actions';
 import { selectFavoriteIds } from '../../store/favorites/favorites.selectors';
+import { CartService } from '../../core/services/cart.service';
+import { AuthService } from '../../core/services/auth.service';
 
 interface Clothing {
   id: number;
@@ -69,9 +71,12 @@ interface Clothing {
               </div>
               <div class="p-4">
                 <h3 class="font-medium text-gray-800 truncate">{{ item.name }}</h3>
-                <p class="text-sm text-gray-500 mt-1">Tailles: {{ item.availableSizes?.join(', ') || 'N/A' }}</p>
+                <p class="text-sm text-gray-500 mt-1">Tailles: {{ item.availableSizes.join(', ') || 'N/A' }}</p>
                 <div class="flex items-center justify-between mt-2">
                   <span class="text-lg font-bold text-blue-600">{{ item.price }} DH</span>
+                  <span class="text-xs text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded">
+                    Stock: {{ item.stock }}
+                  </span>
                 </div>
                 <div class="mt-3 flex gap-2">
                   <a
@@ -80,8 +85,13 @@ interface Clothing {
                   >
                     Aperçu
                   </a>
-                  <button class="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
-                    Commander
+                  <button 
+                    (click)="onOrder(item)"
+                    [disabled]="addingItemIds.has(item.id)"
+                    [class.bg-green-600]="addingItemIds.has(item.id)"
+                    [class.hover:bg-green-700]="addingItemIds.has(item.id)"
+                    class="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+                    {{ addingItemIds.has(item.id) ? 'Ajouté !' : 'Commander' }}
                   </button>
                 </div>
               </div>
@@ -106,14 +116,18 @@ export class CatalogComponent implements OnInit {
   filteredItems: Clothing[] = [];
   loading = true;
   favoriteIds: number[] = [];
+  addingItemIds: Set<number> = new Set<number>();
+  addedItems: Set<number> = new Set<number>();
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
-    private store: Store
-  ) {}
+    private store: Store,
+    private cartService: CartService,
+    private authService: AuthService
+  ) { }
 
   ngOnInit() {
     this.store.dispatch(loadFavorites());
@@ -199,8 +213,57 @@ export class CatalogComponent implements OnInit {
     return this.favoriteIds.includes(itemId);
   }
 
+  isAddedToCart(itemId: number): boolean {
+    return this.addedItems.has(itemId);
+  }
+
   onToggleFavorite(event: Event, itemId: number) {
     event.stopPropagation();
     this.store.dispatch(toggleFavorite({ clothingId: itemId }));
+  }
+
+  onOrder(item: Clothing) {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    // Feedback immédiat spécifique à cet article
+    this.addingItemIds.add(item.id);
+    this.cdr.detectChanges();
+
+    const selectedSize = (item.availableSizes && item.availableSizes.length > 0) ? item.availableSizes[0] : 'M';
+    
+    this.cartService.addToCart(item.id, selectedSize, 1).subscribe({
+      next: (updatedCart) => {
+        console.log('Article ajouté avec succès', updatedCart);
+        this.addedItems.add(item.id);
+        
+        if (item.stock > 0) {
+          item.stock--;
+        }
+
+        this.cdr.detectChanges();
+        // On recrée l'objet Set pour forcer la détection de changement Angular au cas où
+        this.addingItemIds = new Set(this.addingItemIds);
+        
+        // Garder l'état "Ajouté !" pendant 60 secondes pour cet article (plus de temps pour la soutenance)
+        setTimeout(() => {
+          this.addingItemIds.delete(item.id);
+          this.addingItemIds = new Set(this.addingItemIds);
+          this.cdr.detectChanges();
+        }, 60000);
+      },
+      error: (err) => {
+        console.error('Erreur technique lors de l\'ajout au panier', err);
+        this.addingItemIds.delete(item.id);
+        this.cdr.detectChanges();
+        
+        const errorMsg = err.error?.error || 'Erreur inconnue';
+        if (err.status === 401 || err.status === 403 || errorMsg.includes('authentifié')) {
+          this.router.navigate(['/login']);
+        }
+      }
+    });
   }
 }
