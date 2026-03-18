@@ -32,24 +32,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> {})
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/clothing/**").permitAll()
-                .requestMatchers("/api/tryon/test/**").permitAll()
-                .requestMatchers("/uploads/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/cart/**").hasRole("USER")
-                .requestMatchers("/api/orders/**").hasRole("USER")
-                .requestMatchers("/api/favorites/**").hasRole("USER")
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authenticationProvider(authProvider())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {
+                })
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/clothing/**").permitAll()
+                        .requestMatchers("/api/tryon/test/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/debug-test/**").permitAll()
+                        .requestMatchers("/api/cart/**").permitAll()
+                        .requestMatchers("/api/orders/**").permitAll()
+                        .requestMatchers("/api/favorites/**").permitAll()
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -97,4 +97,15 @@ public class AuthService {
             throw e;
         }
     }
+
+    public User getCurrentUser() {
+        org.springframework.security.core.Authentication authentication = 
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("Utilisateur non authentifié");
+        }
+        String email = authentication.getName();
+        return userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    }
 }

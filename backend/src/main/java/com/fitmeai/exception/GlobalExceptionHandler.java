@@ -20,8 +20,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleException(Exception ex) {
+        ex.printStackTrace(); // Affiche la trace dans la console du serveur
         Map<String, String> error = new HashMap<>();
-        error.put("error", "Erreur serveur: " + ex.getMessage());
+        error.put("error", "Erreur serveur: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
