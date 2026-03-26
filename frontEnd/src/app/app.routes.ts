@@ -50,6 +50,14 @@ export const routes: Routes = [
       {
         path: 'cart',
         loadComponent: () => import('./features/cart/cart.component').then(m => m.CartComponent)
+      },
+      {
+        path: 'order-success/:id',
+        loadComponent: () => import('./features/order-success/order-success.component').then(m => m.OrderSuccessComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent)
       }
     ]
   },
