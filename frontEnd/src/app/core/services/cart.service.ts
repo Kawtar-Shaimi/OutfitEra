@@ -65,4 +65,10 @@ export class CartService {
       tap(() => this.cartSubject.next(null))
     );
   }
+
+  checkout(paymentMethod: string): Observable<{ orderId: number, message: string }> {
+    return this.http.post<{ orderId: number, message: string }>(`${this.apiUrl}/checkout`, { paymentMethod }).pipe(
+      tap(() => this.cartSubject.next(null))
+    );
+  }
 }
