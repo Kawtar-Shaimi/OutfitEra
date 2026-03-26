@@ -41,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tryon/test/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/debug-test/**").permitAll()
+                        .requestMatchers("/api/debug/**").permitAll()
                         .requestMatchers("/api/cart/**").permitAll()
                         .requestMatchers("/api/orders/**").permitAll()
                         .requestMatchers("/api/favorites/**").permitAll()
