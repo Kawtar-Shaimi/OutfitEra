@@ -1,13 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { CartService, CartItemResponse } from '../../core/services/cart.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-cart',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   template: `
     <div class="bg-white rounded-xl shadow-sm p-6 max-w-4xl mx-auto">
       <h1 class="text-2xl font-bold text-gray-800 mb-6">Mon Panier</h1>
@@ -81,7 +82,10 @@ import { environment } from '../../../environments/environment';
                 <span class="text-lg font-bold text-gray-800">Total</span>
                 <span class="text-2xl font-extrabold text-blue-600">{{ total }} DH</span>
               </div>
-              <button class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition transform hover:-translate-y-0.5 active:translate-y-0">
+              <button 
+                (click)="openCheckoutModal()"
+                [disabled]="items.length === 0 || isProcessing"
+                class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
                 Valider la commande
               </button>
             </div>
@@ -135,6 +139,70 @@ import { environment } from '../../../environments/environment';
           </div>
         </div>
       }
+
+      <!-- Checkout Modal -->
+      @if (showCheckoutModal) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 transform animate-in zoom-in-95 duration-200">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-4">Validation de la commande</h3>
+            
+            <div class="bg-gray-50 rounded-xl p-4 mb-6">
+              <div class="flex justify-between mb-2">
+                <span class="text-gray-600">Nombre d'articles</span>
+                <span class="font-medium text-gray-800">{{ items.length }}</span>
+              </div>
+              <div class="flex justify-between font-bold text-lg">
+                <span class="text-gray-800">Total à payer</span>
+                <span class="text-blue-600">{{ total }} DH</span>
+              </div>
+            </div>
+
+            <h4 class="font-semibold text-gray-800 mb-3">Mode de paiement (à la livraison)</h4>
+            <div class="space-y-3 mb-8">
+              <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition"
+                     [class.border-blue-500]="selectedPaymentMethod === 'CARD'"
+                     [class.bg-blue-50]="selectedPaymentMethod === 'CARD'">
+                <input type="radio" name="payment" value="CARD" [(ngModel)]="selectedPaymentMethod" class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                <span class="ml-3 font-medium text-gray-700 w-full flex justify-between items-center">
+                  <span>💳 Paiement par carte</span>
+                </span>
+              </label>
+              
+              <label class="flex items-center p-4 border rounded-xl cursor-pointer hover:bg-gray-50 transition"
+                     [class.border-blue-500]="selectedPaymentMethod === 'CASH'"
+                     [class.bg-blue-50]="selectedPaymentMethod === 'CASH'">
+                <input type="radio" name="payment" value="CASH" [(ngModel)]="selectedPaymentMethod" class="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500">
+                <span class="ml-3 font-medium text-gray-700 w-full flex justify-between items-center">
+                  <span>💵 Paiement en espèces</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="flex gap-3">
+              <button 
+                (click)="closeCheckoutModal()"
+                [disabled]="isProcessing"
+                class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition disabled:opacity-50">
+                Annuler
+              </button>
+              <button 
+                (click)="confirmCheckout()"
+                [disabled]="isProcessing"
+                class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition flex justify-center items-center disabled:opacity-50">
+                @if (isProcessing) {
+                  <svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Traitement...
+                } @else {
+                  Confirmer
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `
 })
@@ -149,9 +217,14 @@ export class CartComponent implements OnInit {
   modalType: 'REMOVE' | 'CLEAR' = 'REMOVE';
   selectedItemId: number | null = null;
 
+  // Checkout Modal State
+  showCheckoutModal = false;
+  selectedPaymentMethod: 'CARD' | 'CASH' = 'CASH';
+
   constructor(
     private cartService: CartService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -235,5 +308,29 @@ export class CartComponent implements OnInit {
 
   private clearCartAction() {
     this.cartService.clearCart().subscribe();
+  }
+
+  openCheckoutModal() {
+    this.showCheckoutModal = true;
+  }
+
+  closeCheckoutModal() {
+    this.showCheckoutModal = false;
+  }
+
+  confirmCheckout() {
+    this.isProcessing = true;
+    this.cartService.checkout(this.selectedPaymentMethod).subscribe({
+      next: (response) => {
+        this.isProcessing = false;
+        this.closeCheckoutModal();
+        this.router.navigate(['/order-success', response.orderId]);
+      },
+      error: (err) => {
+        this.isProcessing = false;
+        console.error('Erreur lors de la validation', err);
+        this.cdr.detectChanges();
+      }
+    });
   }
 }
