@@ -23,5 +23,5 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByStatus(String status);
 
     @Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.status = 'DELIVERED'")
-    Double sumDeliveredAmount();
+    java.math.BigDecimal sumDeliveredAmount();
 }
