@@ -51,4 +51,14 @@ public class CartController {
         cartService.clearCart(user);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<java.util.Map<String, Object>> checkout(@RequestBody com.fitmeai.dto.request.CheckoutRequest request) {
+        User user = authService.getCurrentUser();
+        Long orderId = cartService.checkout(user, request.getPaymentMethod());
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("orderId", orderId);
+        response.put("message", "Commande créée avec succès");
+        return ResponseEntity.ok(response);
+    }
 }
