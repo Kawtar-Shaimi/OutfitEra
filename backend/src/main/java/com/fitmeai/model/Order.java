@@ -29,7 +29,9 @@ public class Order {
     private BigDecimal totalAmount;
 
     @Column(nullable = false)
-    private String status; // PENDING, PAID, SHIPPED, DELIVERED, CANCELLED
+    private String status; // EN_ATTENTE, PAID, SHIPPED, DELIVERED, CANCELLED
+
+    private String paymentMethod; // CARD, CASH
 
     private String shippingAddress;
 
@@ -41,7 +43,7 @@ public class Order {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (status == null) {
-            status = "PENDING";
+            status = "EN_ATTENTE";
         }
     }
 
