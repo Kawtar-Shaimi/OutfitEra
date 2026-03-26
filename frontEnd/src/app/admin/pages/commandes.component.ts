@@ -1,29 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
-
-interface OrderItem {
-  id: number;
-  clothingId: number;
-  clothingName: string;
-  size: string;
-  quantity: number;
-  price: number;
-}
-
-interface Order {
-  id: number;
-  userId: number;
-  userEmail: string;
-  items: OrderItem[];
-  totalAmount: number;
-  status: string;
-  shippingAddress: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { AdminService, AdminOrder } from '../../core/services/admin.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-admin-commandes',
@@ -91,13 +70,14 @@ interface Order {
                 <tr class="hover:bg-gray-50">
                   <td class="px-4 py-3 font-medium">#{{ order.id }}</td>
                   <td class="px-4 py-3">
-                    <div class="text-sm">{{ order.userEmail }}</div>
-                    <div class="text-xs text-gray-500 truncate max-w-[200px]">{{ order.shippingAddress }}</div>
+                    <div class="text-sm border-b border-gray-100 pb-1 mb-1">{{ order.user.firstName }} {{ order.user.lastName }}</div>
+                    <div class="text-xs text-gray-500">{{ order.user.email }}</div>
+                    <div class="text-xs text-gray-400 truncate max-w-[200px] mt-1">{{ order.shippingAddress || 'Aucune adresse' }}</div>
                   </td>
                   <td class="px-4 py-3">
                     <div class="text-sm">
                       @for (item of order.items; track item.id; let last = $last) {
-                        <span>{{ item.quantity }}x {{ item.clothingName }} ({{ item.size }}){{ last ? '' : ', ' }}</span>
+                        <span>{{ item.quantity }}x {{ item.clothing.name }} ({{ item.size }}){{ last ? '' : ', ' }}</span>
                       }
                     </div>
                   </td>
@@ -159,10 +139,13 @@ interface Order {
               </div>
 
               <!-- Infos client -->
-              <div class="mb-6">
-                <h3 class="text-sm font-medium text-gray-500 mb-2">Client</h3>
-                <p class="font-medium">{{ selectedOrder.userEmail }}</p>
-                <p class="text-sm text-gray-600">{{ selectedOrder.shippingAddress }}</p>
+              <div class="mb-6 bg-gray-50 p-3 rounded-lg">
+                <h3 class="text-sm font-medium text-gray-700 mb-2 border-b pb-2">Client</h3>
+                <p class="font-medium text-gray-900">{{ selectedOrder.user.firstName }} {{ selectedOrder.user.lastName }}</p>
+                <p class="text-sm text-gray-600 mb-2">{{ selectedOrder.user.email }}</p>
+                <h3 class="text-sm font-medium text-gray-700 mt-3 border-b pb-2">Livraison & Paiement</h3>
+                <p class="text-sm text-gray-600 mt-2">{{ selectedOrder.shippingAddress || 'Aucune adresse' }}</p>
+                <p class="text-sm text-gray-600 mt-1">Paiement : <span class="font-medium">{{ selectedOrder.paymentMethod }}</span></p>
               </div>
 
               <!-- Statut -->
@@ -178,12 +161,12 @@ interface Order {
                 <h3 class="text-sm font-medium text-gray-500 mb-2">Articles</h3>
                 <div class="border rounded-lg divide-y">
                   @for (item of selectedOrder.items; track item.id) {
-                    <div class="p-3 flex justify-between items-center">
+                    <div class="p-3 flex justify-between items-center bg-gray-50 mb-2 rounded-lg">
                       <div>
-                        <p class="font-medium">{{ item.clothingName }}</p>
+                        <p class="font-medium text-gray-800">{{ item.clothing.name }}</p>
                         <p class="text-sm text-gray-500">Taille: {{ item.size }} | Qté: {{ item.quantity }}</p>
                       </div>
-                      <p class="font-medium">{{ item.price * item.quantity }} DH</p>
+                      <p class="font-medium text-gray-800">{{ item.subTotal }} DH</p>
                     </div>
                   }
                 </div>
@@ -196,9 +179,8 @@ interface Order {
               </div>
 
               <!-- Dates -->
-              <div class="mt-6 text-sm text-gray-500">
-                <p>Créée le: {{ formatDate(selectedOrder.createdAt) }}</p>
-                <p>Mise à jour: {{ formatDate(selectedOrder.updatedAt) }}</p>
+              <div class="mt-6 text-sm text-gray-500 flex justify-between border-t border-gray-100 pt-4">
+                <p>Créée le : {{ formatDate(selectedOrder.createdAt) }}</p>
               </div>
             </div>
           </div>
@@ -208,27 +190,47 @@ interface Order {
   `
 })
 export class AdminCommandesComponent implements OnInit {
-  orders: Order[] = [];
+  orders: AdminOrder[] = [];
   filterStatus = '';
-  selectedOrder: Order | null = null;
+  selectedOrder: AdminOrder | null = null;
+  loading = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private adminService: AdminService, 
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit() {
     this.loadOrders();
+    this.checkQueryParams();
+  }
+
+  checkQueryParams() {
+    this.route.queryParams.subscribe(params => {
+      const orderId = params['orderId'];
+      if (orderId && this.orders.length > 0) {
+        const order = this.orders.find(o => o.id === parseInt(orderId));
+        if (order) {
+          this.selectedOrder = order;
+          this.cdr.detectChanges();
+        }
+      }
+    });
   }
 
   loadOrders() {
-    const url = this.filterStatus
-      ? `${environment.apiUrl}/admin/orders?status=${this.filterStatus}`
-      : `${environment.apiUrl}/admin/orders`;
-
-    this.http.get<Order[]>(url).subscribe({
+    this.loading = true;
+    this.adminService.getAllOrders().subscribe({
       next: (data) => {
-        this.orders = data;
+        this.orders = this.filterStatus ? data.filter(o => o.status === this.filterStatus) : data;
+        this.loading = false;
+        this.checkQueryParams();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur:', err);
+        this.loading = false;
       }
     });
   }
@@ -237,15 +239,16 @@ export class AdminCommandesComponent implements OnInit {
     const select = event.target as HTMLSelectElement;
     const newStatus = select.value;
 
-    this.http.put(`${environment.apiUrl}/admin/orders/${orderId}/status?status=${newStatus}`, {}).subscribe({
-      next: () => {
-        const order = this.orders.find(o => o.id === orderId);
-        if (order) {
-          order.status = newStatus;
+    this.adminService.updateOrderStatus(orderId, newStatus).subscribe({
+      next: (updatedOrder) => {
+        const index = this.orders.findIndex(o => o.id === orderId);
+        if (index > -1) {
+          this.orders[index] = updatedOrder;
         }
         if (this.selectedOrder?.id === orderId) {
-          this.selectedOrder.status = newStatus;
+          this.selectedOrder = updatedOrder;
         }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Erreur:', err);
@@ -254,7 +257,7 @@ export class AdminCommandesComponent implements OnInit {
     });
   }
 
-  viewOrder(order: Order) {
+  viewOrder(order: AdminOrder) {
     this.selectedOrder = order;
   }
 
@@ -273,18 +276,22 @@ export class AdminCommandesComponent implements OnInit {
   getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
       'PENDING': 'En attente',
+      'PAID': 'Payée',
+      'SHIPPED': 'Expédiée',
       'DELIVERED': 'Livrée',
       'CANCELLED': 'Annulée'
     };
-    return labels[status] || status;
+    return labels[status.toUpperCase()] || status;
   }
 
   getStatusClass(status: string): string {
     const classes: Record<string, string> = {
       'PENDING': 'bg-yellow-100 text-yellow-800',
+      'PAID': 'bg-blue-100 text-blue-800',
+      'SHIPPED': 'bg-indigo-100 text-indigo-800',
       'DELIVERED': 'bg-green-100 text-green-800',
       'CANCELLED': 'bg-red-100 text-red-800'
     };
-    return classes[status] || 'bg-gray-100 text-gray-800';
+    return classes[status.toUpperCase()] || 'bg-gray-100 text-gray-800';
   }
 }
