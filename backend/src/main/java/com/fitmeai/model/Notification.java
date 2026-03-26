@@ -25,6 +25,8 @@ public class Notification {
     @Column(nullable = false)
     private String message;
 
+    private Long targetId;
+
     private boolean isRead = false;
 
     private LocalDateTime createdAt;
