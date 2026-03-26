@@ -1,5 +1,7 @@
 package com.fitmeai.service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.fitmeai.dto.request.CartItemRequest;
 import com.fitmeai.dto.response.CartItemResponse;
 import com.fitmeai.dto.response.CartResponse;
@@ -10,9 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class CartServiceImpl implements CartService {
 
@@ -20,102 +23,32 @@ public class CartServiceImpl implements CartService {
     private CartRepository cartRepository;
 
     @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
     private ClothingRepository clothingRepository;
+
+    @Autowired
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private NotificationService notificationService;
+
+    private Cart getOrCreateCart(User user) {
+        return cartRepository.findByUserId(user.getId()).orElseGet(() -> {
+            Cart cart = new Cart();
+            cart.setUser(user);
+            return cartRepository.save(cart);
+        });
+    }
 
     @Override
     @Transactional(readOnly = true)
     public CartResponse getCart(User user) {
         Cart cart = getOrCreateCart(user);
-        return mapToResponse(cart);
-    }
-
-    @Override
-    @Transactional
-    public CartResponse addItemToCart(User user, CartItemRequest request) {
-        Cart cart = getOrCreateCart(user);
-        
-        if (request.getClothingId() == null) {
-            throw new RuntimeException("ID du vêtement manquant");
-        }
-        
-        Clothing clothing = clothingRepository.findById(request.getClothingId())
-                .orElseThrow(() -> new RuntimeException("Vêtement non trouvé"));
-
-        // Décrémenter le stock AVANT d'ajouter au panier
-        if (clothing.getStock() != null) {
-            if (clothing.getStock() >= request.getQuantity()) {
-                clothing.setStock(clothing.getStock() - request.getQuantity());
-                clothingRepository.saveAndFlush(clothing);
-            } else {
-                throw new RuntimeException("Stock insuffisant. Disponible: " + clothing.getStock());
-            }
-        }
-
-        // Vérifier si l'article existe déjà dans le panier avec la même taille
-        CartItem existingItem = cart.getItems().stream()
-                .filter(item -> item.getClothing().getId() != null
-                        && item.getClothing().getId().equals(request.getClothingId())
-                        && item.getSize().equals(request.getSize()))
-                .findFirst()
-                .orElse(null);
-
-        if (existingItem != null) {
-            existingItem.setQuantity(existingItem.getQuantity() + request.getQuantity());
-        } else {
-            CartItem newItem = new CartItem();
-            newItem.setCart(cart);
-            newItem.setClothing(clothing);
-            newItem.setSize(request.getSize());
-            newItem.setQuantity(request.getQuantity());
-            cart.getItems().add(newItem);
-        }
-
-        // On sauvegarde et on force la synchronisation
-        Cart savedCart = cartRepository.saveAndFlush(cart);
-        return mapToResponse(savedCart);
-    }
-
-    @Override
-    @Transactional
-    public CartResponse updateItemQuantity(User user, Long itemId, Integer quantity) {
-        Cart cart = getOrCreateCart(user);
-        CartItem item = cart.getItems().stream()
-                .filter(i -> i.getId().equals(itemId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Article non trouvé dans le panier"));
-
-        item.setQuantity(quantity);
-        return mapToResponse(cartRepository.saveAndFlush(cart));
-    }
-
-    @Override
-    @Transactional
-    public CartResponse removeItemFromCart(User user, Long itemId) {
-        Cart cart = getOrCreateCart(user);
-        cart.getItems().removeIf(item -> item.getId().equals(itemId));
-        return mapToResponse(cartRepository.saveAndFlush(cart));
-    }
-
-    @Override
-    @Transactional
-    public void clearCart(User user) {
-        Cart cart = getOrCreateCart(user);
-        cart.getItems().clear();
-        cartRepository.saveAndFlush(cart);
-    }
-
-    private Cart getOrCreateCart(User user) {
-        return cartRepository.findByUserId(user.getId())
-                .orElseGet(() -> {
-                    Cart newCart = new Cart();
-                    newCart.setUser(user);
-                    return cartRepository.saveAndFlush(newCart);
-                });
-    }
-
-    private CartResponse mapToResponse(Cart cart) {
         CartResponse response = new CartResponse();
-        List<CartItemResponse> itemResponses = cart.getItems().stream().map(item -> {
+
+        response.setItems(cart.getItems().stream().map(item -> {
             CartItemResponse ir = new CartItemResponse();
             ir.setId(item.getId());
             ir.setClothingId(item.getClothing().getId());
@@ -127,14 +60,118 @@ public class CartServiceImpl implements CartService {
             BigDecimal price = item.getClothing().getPrice() != null ? item.getClothing().getPrice() : BigDecimal.ZERO;
             ir.setUnitPrice(price);
             ir.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
-            return ir;
-        }).collect(Collectors.toList());
 
-        response.setItems(itemResponses);
-        BigDecimal total = itemResponses.stream()
+            return ir;
+        }).collect(Collectors.toList()));
+
+        BigDecimal total = response.getItems().stream()
                 .map(CartItemResponse::getSubTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         response.setTotalAmount(total);
+
         return response;
+    }
+
+    @Override
+    @Transactional
+    public CartResponse addItemToCart(User user, CartItemRequest request) {
+        Cart cart = getOrCreateCart(user);
+        Clothing clothing = clothingRepository.findById(request.getClothingId())
+                .orElseThrow(() -> new RuntimeException("Vêtement non trouvé"));
+
+        Optional<CartItem> existingItem = cart.getItems().stream()
+                .filter(i -> i.getClothing().getId().equals(clothing.getId()) && i.getSize().equals(request.getSize()))
+                .findFirst();
+
+        if (existingItem.isPresent()) {
+            CartItem item = existingItem.get();
+            item.setQuantity(item.getQuantity() + request.getQuantity());
+        } else {
+            CartItem newItem = new CartItem();
+            newItem.setCart(cart);
+            newItem.setClothing(clothing);
+            newItem.setSize(request.getSize());
+            newItem.setQuantity(request.getQuantity());
+            cart.getItems().add(newItem);
+        }
+
+        cartRepository.save(cart);
+        return getCart(user);
+    }
+
+    @Override
+    @Transactional
+    public CartResponse updateItemQuantity(User user, Long itemId, Integer quantity) {
+        Cart cart = getOrCreateCart(user);
+        CartItem item = cart.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Article non trouvé"));
+
+        item.setQuantity(quantity);
+        cartItemRepository.save(item);
+        return getCart(user);
+    }
+
+    @Override
+    @Transactional
+    public CartResponse removeItemFromCart(User user, Long itemId) {
+        Cart cart = getOrCreateCart(user);
+        cart.getItems().removeIf(i -> i.getId().equals(itemId));
+        cartItemRepository.deleteById(itemId);
+        cartRepository.save(cart);
+        return getCart(user);
+    }
+
+    @Override
+    @Transactional
+    public void clearCart(User user) {
+        Cart cart = getOrCreateCart(user);
+        cart.getItems().clear();
+        cartRepository.save(cart);
+    }
+
+    @Override
+    @Transactional
+    public Long checkout(User user, String paymentMethod) {
+        log.info("Checkout started for user: {} (id: {})", user.getEmail(), user.getId());
+        Cart cart = getOrCreateCart(user);
+
+        if (cart.getItems().isEmpty()) {
+            throw new RuntimeException("Le panier est vide");
+        }
+
+        Order order = new Order();
+        order.setUser(user);
+        order.setPaymentMethod(paymentMethod);
+        order.setStatus("PENDING");
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (CartItem cartItem : cart.getItems()) {
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setClothing(cartItem.getClothing());
+            orderItem.setSize(cartItem.getSize());
+            orderItem.setQuantity(cartItem.getQuantity());
+
+            BigDecimal price = cartItem.getClothing().getPrice() != null ? cartItem.getClothing().getPrice() : BigDecimal.ZERO;
+            orderItem.setPriceAtOrder(price);
+
+            total = total.add(price.multiply(BigDecimal.valueOf(cartItem.getQuantity())));
+            order.getItems().add(orderItem);
+        }
+        order.setTotalAmount(total);
+
+        Order savedOrder = orderRepository.saveAndFlush(order);
+
+        cart.getItems().clear();
+        cartRepository.saveAndFlush(cart);
+
+        // Notify admins
+        String adminMsg = "La commande #" + savedOrder.getId() + " a été passée par l'utilisateur #" + user.getId() + " (" + user.getFirstName() + " " + user.getLastName() + "). Elle nécessite une livraison.";
+        log.info("Notifying admins: {}", adminMsg);
+        notificationService.notifyAdmins(adminMsg, savedOrder.getId());
+
+        return savedOrder.getId();
     }
 }
