@@ -1,8 +1,11 @@
-import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { CartService } from '../../core/services/cart.service';
 import { AuthService } from '../../core/services/auth.service';
+import { NotificationService, NotificationResponse } from '../../core/services/notification.service';
+import { Subscription, interval } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -86,14 +89,56 @@ import { AuthService } from '../../core/services/auth.service';
         <!-- Right: Icons -->
         <div class="flex items-center gap-2">
           <!-- Notifications -->
-          <button class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            @if (notificationCount > 0) {
-              <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <div class="relative">
+            <button 
+              (click)="toggleNotifications()"
+              class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              @if (notificationCount > 0) {
+                <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              }
+            </button>
+
+            <!-- Notifications Dropdown -->
+            @if (showNotifications) {
+              <div class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                <div class="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                  <h3 class="font-bold text-gray-800">Notifications</h3>
+                  @if (notificationCount > 0) {
+                    <button (click)="markAllAsRead()" class="text-xs text-blue-600 hover:underline">
+                      Tout marquer comme lu
+                    </button>
+                  }
+                </div>
+                <div class="max-h-96 overflow-y-auto">
+                  @if (notifications.length === 0) {
+                    <div class="p-4 text-center text-gray-500 text-sm">
+                      Aucune notification
+                    </div>
+                  } @else {
+                    @for (notif of notifications; track notif.id) {
+                      <div 
+                        (click)="markAsRead(notif.id)"
+                        class="p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition"
+                        [class.bg-blue-50]="!notif.read"
+                        [class.border-blue-100]="!notif.read"
+                      >
+                        <p class="text-sm text-gray-800" [class.font-semibold]="!notif.read">
+                          {{ notif.message }}
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">
+                          {{ notif.createdAt | date:'dd/MM/yyyy HH:mm' }}
+                        </p>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
             }
-          </button>
+          </div>
 
           <!-- Cart -->
           <button
@@ -111,7 +156,10 @@ import { AuthService } from '../../core/services/auth.service';
           </button>
 
           <!-- Profile -->
-          <button class="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition">
+          <button 
+            routerLink="/profile"
+            class="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"
+          >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -181,29 +229,81 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="lg:hidden h-12"></div>
   `
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent implements OnInit, OnDestroy {
   @Input() sidebarOpen = false;
   @Output() toggleSidebar = new EventEmitter<void>();
 
+  private pollingSub?: Subscription;
+
   notificationCount = 0;
+  notifications: NotificationResponse[] = [];
+  showNotifications = false;
   cartCount = 0;
   isLoggedIn = false;
 
   constructor(
     private cartService: CartService,
     private authService: AuthService,
-    private router: Router
+    private notificationService: NotificationService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.authService.currentUser$.subscribe(user => {
       this.isLoggedIn = !!user;
+      this.cdr.detectChanges();
+      if (this.isLoggedIn) {
+        this.notificationService.loadUserNotifications();
+        this.startPolling();
+      } else {
+        this.stopPolling();
+      }
+    });
+
+    this.notificationService.notifications$.subscribe(notifs => {
+      this.notifications = notifs || [];
+      this.notificationCount = this.notifications.filter(n => !n.read).length;
+      this.cdr.detectChanges();
     });
 
     this.cartService.cart$.subscribe(cart => {
       this.cartCount = cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+      this.cdr.detectChanges();
     });
     this.cartService.loadCart();
+  }
+
+  ngOnDestroy() {
+    this.stopPolling();
+  }
+
+  private startPolling() {
+    this.stopPolling();
+    this.pollingSub = interval(30000).subscribe(() => {
+      this.notificationService.loadUserNotifications();
+    });
+  }
+
+  private stopPolling() {
+    if (this.pollingSub) {
+      this.pollingSub.unsubscribe();
+    }
+  }
+
+  toggleNotifications() {
+    this.showNotifications = !this.showNotifications;
+  }
+
+  markAsRead(id: number) {
+    this.notificationService.markAsRead(id).subscribe(() => {
+      this.showNotifications = false;
+      this.router.navigate(['/orders']);
+    });
+  }
+
+  markAllAsRead() {
+    this.notificationService.markAllAsReadUser().subscribe();
   }
 
   onLogout() {
