@@ -9,12 +9,14 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Checkout code from Git
                 checkout scm
             }
         }
 
         stage('Build Backend') {
+            agent {
+                docker { image 'maven:3.9.6-eclipse-temurin-17' }
+            }
             steps {
                 dir('backEnd') {
                     sh 'mvn clean package -DskipTests'
@@ -23,6 +25,9 @@ pipeline {
         }
 
         stage('Build Frontend') {
+            agent {
+                docker { image 'node:18-alpine' }
+            }
             steps {
                 dir('frontEnd') {
                     sh 'npm install'
@@ -31,22 +36,17 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
+        stage('Docker Build & Deploy') {
             steps {
                 script {
                     sh "docker-compose build"
-                }
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                script {
                     sh "docker-compose up -d"
                 }
             }
         }
     }
+    // ... post blocks remain same
+}
 
     post {
         always {
