@@ -2,11 +2,11 @@ package com.fitmeai.controller;
 
 import com.fitmeai.model.Clothing;
 import com.fitmeai.model.Order;
-import com.fitmeai.model.User;
 import com.fitmeai.repository.ClothingRepository;
 import com.fitmeai.repository.OrderRepository;
 import com.fitmeai.repository.UserRepository;
 import com.fitmeai.service.FileStorageService;
+import com.fitmeai.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -33,20 +33,51 @@ public class AdminController {
     @Autowired
     private FileStorageService fileStorage;
 
+    @Autowired
+    private NotificationService notificationService;
+
     // ==================== STATISTIQUES ====================
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
+        log.info("Request for admin stats received.");
         Map<String, Object> stats = new HashMap<>();
 
-        stats.put("totalArticles", clothingRepo.count());
-        stats.put("totalCommandes", orderRepo.countAll());
-        stats.put("commandesEnCours", orderRepo.countByStatus("PENDING") + orderRepo.countByStatus("PAID") + orderRepo.countByStatus("SHIPPED"));
-        stats.put("commandesLivrees", orderRepo.countByStatus("DELIVERED"));
-        stats.put("totalUtilisateurs", userRepo.count());
+        try {
+            long totalArticles = clothingRepo.count();
+            long totalCommandes = orderRepo.count();
+            long totalUtilisateurs = userRepo.count();
+            
+            // For calculating status counts and revenue, we use a lighter query or direct count
+            long enCours = orderRepo.countByStatus("PENDING") + 
+                          orderRepo.countByStatus("PAID") + 
+                          orderRepo.countByStatus("SHIPPED") + 
+                          orderRepo.countByStatus("EN_ATTENTE");
+            
+            long livrees = orderRepo.countByStatus("DELIVERED");
+            
+            BigDecimal revenue = orderRepo.sumDeliveredAmount();
+            if (revenue == null) revenue = BigDecimal.ZERO;
 
-        Double revenue = orderRepo.sumDeliveredAmount();
-        stats.put("chiffreAffaires", revenue != null ? revenue : 0.0);
+            stats.put("totalArticles", totalArticles);
+            stats.put("totalCommandes", totalCommandes);
+            stats.put("commandesEnCours", enCours);
+            stats.put("commandesLivrees", livrees);
+            stats.put("totalUtilisateurs", totalUtilisateurs);
+            stats.put("chiffreAffaires", revenue);
+
+            log.info("Successfully calculated stats: Articles={}, Orders={}, Users={}, Revenue={}", 
+                    totalArticles, totalCommandes, totalUtilisateurs, revenue);
+        } catch (Exception e) {
+            log.error("Fatal error during stats calculation: {}", e.getMessage());
+            // Return zeros instead of empty response/error to keep dashboard stable
+            stats.put("totalArticles", 0);
+            stats.put("totalCommandes", 0);
+            stats.put("commandesEnCours", 0);
+            stats.put("commandesLivrees", 0);
+            stats.put("totalUtilisateurs", 0);
+            stats.put("chiffreAffaires", BigDecimal.ZERO);
+        }
 
         return ResponseEntity.ok(stats);
     }
@@ -60,8 +91,9 @@ public class AdminController {
 
     @GetMapping("/clothing/{id}")
     public ResponseEntity<Clothing> getClothing(@PathVariable Long id) {
+        java.util.Objects.requireNonNull(id);
         return clothingRepo.findById(id)
-                .map(ResponseEntity::ok)
+                .map(clothing -> ResponseEntity.ok(clothing))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -99,7 +131,7 @@ public class AdminController {
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             log.error("Erreur création article: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().<Clothing>build();
         }
     }
 
@@ -135,7 +167,7 @@ public class AdminController {
                 }
 
                 Clothing saved = clothingRepo.save(clothing);
-                log.info("Article modifié: {} (id={})", saved.getName(), saved.getId());
+                log.info("Article modifié: id={}", saved.getId());
 
                 return ResponseEntity.ok(saved);
             } catch (Exception e) {
@@ -159,11 +191,14 @@ public class AdminController {
 
     @GetMapping("/orders")
     public ResponseEntity<List<Order>> getAllOrders() {
-        return ResponseEntity.ok(orderRepo.findAllByOrderByCreatedAtDesc());
+        List<Order> orders = orderRepo.findAllByOrderByCreatedAtDesc();
+        log.info("Admin fetching all orders. Found: {}", orders.size());
+        return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/orders/{id}")
     public ResponseEntity<Order> getOrder(@PathVariable Long id) {
+        java.util.Objects.requireNonNull(id);
         return orderRepo.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -179,6 +214,7 @@ public class AdminController {
             @PathVariable Long id,
             @RequestParam("status") String status
     ) {
+        java.util.Objects.requireNonNull(id);
         return orderRepo.findById(id).map(order -> {
             String newStatus = status.toUpperCase();
             // Valider le statut
@@ -189,6 +225,10 @@ public class AdminController {
             order.setStatus(newStatus);
             Order saved = orderRepo.save(order);
             log.info("Commande {} -> statut: {}", id, newStatus);
+
+            // Notify user
+            String userMsg = "Le statut de votre commande #" + id + " est passé à : " + newStatus;
+            notificationService.createNotification(order.getUser(), "ORDER_STATUS_CHANGED", userMsg, id);
 
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
