@@ -1,4 +1,6 @@
 # Master .gitignore for OutfitEra
+.env
+*.env
 
 # IDEs and System files
 .idea/
