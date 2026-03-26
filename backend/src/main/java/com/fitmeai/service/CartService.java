@@ -10,4 +10,5 @@ public interface CartService {
     CartResponse updateItemQuantity(User user, Long itemId, Integer quantity);
     CartResponse removeItemFromCart(User user, Long itemId);
     void clearCart(User user);
+    Long checkout(User user, String paymentMethod);
 }
