@@ -16,7 +16,7 @@ services:
 
   backend:
     build: 
-      context: ./backEnd
+      context: ./backend
     container_name: fitmeai-backend
     ports:
       - "8080:8080"

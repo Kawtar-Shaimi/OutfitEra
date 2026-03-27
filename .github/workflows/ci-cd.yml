@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-backend:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,15 +19,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
           
-      - name: Build with Maven
+      - name: Build Backend (Maven)
         working-directory: backend
         run: mvn clean package -DskipTests
           
-  build-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -42,22 +37,9 @@ jobs:
           echo "export const environment = { production: true, apiUrl: 'http://localhost:8080/api' };" > src/environments/environment.ts
           echo "export const environment = { production: false, apiUrl: 'http://localhost:8080/api' };" > src/environments/environment.development.ts
 
-      - name: Install dependencies
-        working-directory: frontEnd
-        run: npm install
-          
-      - name: Build Angular app
+      - name: Build Frontend (Angular)
         working-directory: frontEnd
         run: npm run build
 
-  docker-build:
-    needs: [build-backend, build-frontend]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        
       - name: Build Docker images
         run: docker compose build
