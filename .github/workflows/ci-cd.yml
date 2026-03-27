@@ -35,6 +35,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontEnd/package-lock.json
           
+      - name: Create default environment files
+        working-directory: frontEnd
+        run: |
+          mkdir -p src/environments
+          echo "export const environment = { production: true };" > src/environments/environment.ts
+          echo "export const environment = { production: false };" > src/environments/environment.development.ts
+
       - name: Install dependencies
         working-directory: frontEnd
         run: npm install
