@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Debug structure
+        run: find . -maxdepth 2 -not -path '*/.*'
+        
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -20,8 +23,15 @@ jobs:
           cache: maven
           
       - name: Build with Maven
-        working-directory: backEnd
-        run: mvn clean package -DskipTests
+        run: |
+          if [ -d "backEnd" ]; then
+            cd backEnd
+            mvn clean package -DskipTests
+          else
+            echo "Error: backEnd directory not found!"
+            ls -R
+            exit 1
+          fi
           
   build-frontend:
     runs-on: ubuntu-latest
