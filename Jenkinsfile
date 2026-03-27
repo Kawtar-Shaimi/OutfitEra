@@ -45,8 +45,6 @@ pipeline {
             }
         }
     }
-    // ... post blocks remain same
-}
 
     post {
         always {
