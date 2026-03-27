@@ -9,6 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                sh 'env'
                 checkout scm
             }
         }
