@@ -9,31 +9,19 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh 'env'
                 checkout scm
             }
         }
 
         stage('Build Backend') {
-            agent {
-                docker { image 'maven:3.9.6-eclipse-temurin-17' }
-            }
             steps {
-                dir('backEnd') {
-                    sh 'mvn clean package -DskipTests'
-                }
+                sh 'docker run --rm -v ${WORKSPACE}/backEnd:/usr/src/app -w /usr/src/app maven:3.9.6-eclipse-temurin-17 mvn clean package -DskipTests'
             }
         }
 
         stage('Build Frontend') {
-            agent {
-                docker { image 'node:18-alpine' }
-            }
             steps {
-                dir('frontEnd') {
-                    sh 'npm install'
-                    sh 'npm run build -- --configuration production'
-                }
+                sh 'docker run --rm -v ${WORKSPACE}/frontEnd:/usr/src/app -w /usr/src/app node:18-alpine sh -c "npm install && npm run build -- --configuration production"'
             }
         }
 
@@ -49,7 +37,7 @@ pipeline {
 
     post {
         always {
-            cleanWs()
+            echo 'Finalizing...'
         }
         success {
             echo 'Pipeline completed successfully!'
