@@ -10,18 +10,19 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                sh "/usr/bin/docker --version"
             }
         }
 
         stage('Build Backend') {
             steps {
-                sh '/usr/bin/docker run --rm -v ${WORKSPACE}/backEnd:/usr/src/app -w /usr/src/app maven:3.9.6-eclipse-temurin-17 mvn clean package -DskipTests'
+                sh "/usr/bin/docker run --rm -v \${WORKSPACE}/backEnd:/usr/src/app -w /usr/src/app maven:3.9.6-eclipse-temurin-17 mvn clean package -DskipTests"
             }
         }
 
         stage('Build Frontend') {
             steps {
-                sh '/usr/bin/docker run --rm -v ${WORKSPACE}/frontEnd:/usr/src/app -w /usr/src/app node:18-alpine sh -c "npm install && npm run build -- --configuration production"'
+                sh "/usr/bin/docker run --rm -v \${WORKSPACE}/frontEnd:/usr/src/app -w /usr/src/app node:18-alpine sh -c 'npm install && npm run build -- --configuration production'"
             }
         }
 
