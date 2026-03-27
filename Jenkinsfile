@@ -15,21 +15,21 @@ pipeline {
 
         stage('Build Backend') {
             steps {
-                sh 'docker run --rm -v ${WORKSPACE}/backEnd:/usr/src/app -w /usr/src/app maven:3.9.6-eclipse-temurin-17 mvn clean package -DskipTests'
+                sh '/usr/bin/docker run --rm -v ${WORKSPACE}/backEnd:/usr/src/app -w /usr/src/app maven:3.9.6-eclipse-temurin-17 mvn clean package -DskipTests'
             }
         }
 
         stage('Build Frontend') {
             steps {
-                sh 'docker run --rm -v ${WORKSPACE}/frontEnd:/usr/src/app -w /usr/src/app node:18-alpine sh -c "npm install && npm run build -- --configuration production"'
+                sh '/usr/bin/docker run --rm -v ${WORKSPACE}/frontEnd:/usr/src/app -w /usr/src/app node:18-alpine sh -c "npm install && npm run build -- --configuration production"'
             }
         }
 
         stage('Docker Build & Deploy') {
             steps {
                 script {
-                    sh "docker-compose build"
-                    sh "docker-compose up -d"
+                    sh "/usr/bin/docker-compose build"
+                    sh "/usr/bin/docker-compose up -d"
                 }
             }
         }
