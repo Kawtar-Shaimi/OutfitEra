@@ -1,0 +1,189 @@
+classDiagram
+    direction TB
+
+    %% ───────────────────────────────────────
+    %% ENUMERATIONS
+    %% ───────────────────────────────────────
+
+    class Category {
+        <<enumeration>>
+        TOP
+        BOTTOM
+        DRESS
+        SHOES
+        ACCESSORY
+    }
+
+    class Gender {
+        <<enumeration>>
+        HOMME
+        FEMME
+        UNISEX
+    }
+
+    class GarmentType {
+        <<enumeration>>
+        upper_body
+        lower_body
+        dresses
+    }
+
+    class OrderStatus {
+        <<enumeration>>
+        EN_ATTENTE
+        PAID
+        SHIPPED
+        DELIVERED
+        CANCELLED
+    }
+
+    class PaymentMethod {
+        <<enumeration>>
+        CARD
+        CASH
+    }
+
+    class TryOnStatus {
+        <<enumeration>>
+        PENDING
+        APPROVED
+        REJECTED
+    }
+
+    class NotificationType {
+        <<enumeration>>
+        TRYON_APPROVED
+        TRYON_REJECTED
+        BADGE_EARNED
+        ORDER_CONFIRMED
+        ORDER_STATUS_CHANGED
+    }
+
+    class Role {
+        <<enumeration>>
+        ROLE_USER
+        ROLE_ADMIN
+    }
+
+    %% ───────────────────────────────────────
+    %% ENTITY CLASSES
+    %% ───────────────────────────────────────
+
+    class User {
+        -Long id
+        -String email
+        -String password
+        -String firstName
+        -String lastName
+        -Set~String~ roles
+    }
+
+    class Clothing {
+        -Long id
+        -String name
+        -String description
+        -String category
+        -String gender
+        -String garmentType
+        -BigDecimal price
+        -Set~String~ availableSizes
+        -Integer stock
+        -String imageUrl
+        -LocalDateTime createdAt
+    }
+
+    class Cart {
+        -Long id
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+    }
+
+    class CartItem {
+        -Long id
+        -String size
+        -Integer quantity
+    }
+
+    class Order {
+        -Long id
+        -BigDecimal totalAmount
+        -String status
+        -String paymentMethod
+        -String shippingAddress
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+    }
+
+    class OrderItem {
+        -Long id
+        -String size
+        -Integer quantity
+        -BigDecimal priceAtOrder
+    }
+
+    class Favorite {
+        -Long id
+        -LocalDateTime createdAt
+    }
+
+    class Notification {
+        -Long id
+        -String type
+        -String message
+        -Long targetId
+        -boolean isRead
+        -LocalDateTime createdAt
+    }
+
+    class Review {
+        -Long id
+        -Integer rating
+        -String comment
+        -LocalDateTime createdAt
+    }
+
+    class TryOnResult {
+        -Long id
+        -String userImageUrl
+        -String resultImageUrl
+        -String modelName
+        -String status
+        -boolean isPublic
+        -LocalDateTime createdAt
+    }
+
+    %% ═══════════════════════════════════════
+    %% RELATIONSHIPS – Entity associations
+    %% ═══════════════════════════════════════
+
+    User "1" -- "1" Cart : has >
+    Cart "1" *-- "0..*" CartItem : contains >
+    CartItem "0..*" --> "1" Clothing : references >
+
+    User "1" -- "0..*" Order : places >
+    Order "1" *-- "1..*" OrderItem : contains >
+    OrderItem "0..*" --> "1" Clothing : references >
+
+    User "1" -- "0..*" Favorite : has >
+    Favorite "0..*" --> "1" Clothing : references >
+
+    User "1" -- "0..*" Notification : receives >
+
+    User "1" -- "0..*" TryOnResult : performs >
+    TryOnResult "0..*" --> "1" Clothing : uses >
+
+    User "1" -- "0..*" Review : writes >
+    Review "0..*" --> "1" TryOnResult : rates >
+
+    %% ═══════════════════════════════════════
+    %% RELATIONSHIPS – Enum usage
+    %% ═══════════════════════════════════════
+
+    Clothing ..> Category : category
+    Clothing ..> Gender : gender
+    Clothing ..> GarmentType : garmentType
+    Order ..> OrderStatus : status
+    Order ..> PaymentMethod : paymentMethod
+    TryOnResult ..> TryOnStatus : status
+    Notification ..> NotificationType : type
+    User ..> Role : roles

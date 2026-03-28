@@ -1,8 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { SearchService } from '../../core/services/search.service';
+import { Subscription } from 'rxjs';
 
 interface Clothing {
   id: number;
@@ -163,7 +165,7 @@ interface Clothing {
       <!-- Liste -->
       @if (!showForm) {
         <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-          @if (articles.length === 0) {
+          @if (filteredArticles.length === 0) {
             <div class="text-center py-12 text-gray-500">
               Aucun article
             </div>
@@ -181,7 +183,7 @@ interface Clothing {
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
-                @for (article of articles; track article.id) {
+                @for (article of filteredArticles; track article.id) {
                   <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3">
                       <img
@@ -229,12 +231,15 @@ interface Clothing {
     </div>
   `
 })
-export class AdminArticlesComponent implements OnInit {
+export class AdminArticlesComponent implements OnInit, OnDestroy {
   articles: Clothing[] = [];
+  filteredArticles: Clothing[] = [];
   showForm = false;
   saving = false;
   editingId: number | null = null;
   selectedFile: File | null = null;
+  searchTerm = '';
+  private searchSub?: Subscription;
 
   form = {
     name: '',
@@ -249,18 +254,42 @@ export class AdminArticlesComponent implements OnInit {
 
   constructor(
     private http: HttpClient,
+    private searchService: SearchService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.loadArticles();
+    this.searchSub = this.searchService.searchTerm$.subscribe(term => {
+      this.searchTerm = term.toLowerCase();
+      this.filterArticles();
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.searchSub) {
+      this.searchSub.unsubscribe();
+    }
+  }
+
+  filterArticles() {
+    if (!this.searchTerm) {
+      this.filteredArticles = [...this.articles];
+    } else {
+      this.filteredArticles = this.articles.filter(article => 
+        article.name?.toLowerCase().includes(this.searchTerm) ||
+        article.category?.toLowerCase().includes(this.searchTerm) ||
+        article.gender?.toLowerCase().includes(this.searchTerm)
+      );
+    }
+    this.cdr.detectChanges();
   }
 
   loadArticles() {
     this.http.get<Clothing[]>(`${environment.apiUrl}/admin/clothing`).subscribe({
       next: (data) => {
         this.articles = data;
-        this.cdr.detectChanges();
+        this.filterArticles();
       },
       error: (err) => {
         console.error('Erreur:', err);
