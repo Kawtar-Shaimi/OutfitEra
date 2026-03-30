@@ -30,6 +30,20 @@ import { ActivatedRoute } from '@angular/router';
             En attente
           </button>
           <button
+            (click)="filterStatus = 'PAID'; loadOrders()"
+            [class]="filterStatus === 'PAID' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700'"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
+          >
+            Payées
+          </button>
+          <button
+            (click)="filterStatus = 'SHIPPED'; loadOrders()"
+            [class]="filterStatus === 'SHIPPED' ? 'bg-indigo-500 text-white' : 'bg-indigo-100 text-indigo-700'"
+            class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
+          >
+            Expédiées
+          </button>
+          <button
             (click)="filterStatus = 'DELIVERED'; loadOrders()"
             [class]="filterStatus === 'DELIVERED' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-700'"
             class="px-3 py-1.5 rounded-lg text-sm font-medium transition"
@@ -112,6 +126,8 @@ import { ActivatedRoute } from '@angular/router';
                         [disabled]="order.status === 'DELIVERED' || order.status === 'CANCELLED'"
                       >
                         <option value="PENDING">En attente</option>
+                        <option value="PAID">Payée</option>
+                        <option value="SHIPPED">Expédiée</option>
                         <option value="DELIVERED">Livrée</option>
                         <option value="CANCELLED">Annulée</option>
                       </select>
