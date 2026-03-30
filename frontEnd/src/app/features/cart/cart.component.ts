@@ -37,7 +37,7 @@ import { environment } from '../../../environments/environment';
                     <button 
                       (click)="updateQuantity(item, item.quantity + 1)"
                       class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 transition"
-                      [disabled]="isProcessing"
+                      [disabled]="isProcessing || item.quantity >= item.stock"
                     >+</button>
                   </div>
                 </div>
@@ -329,6 +329,7 @@ export class CartComponent implements OnInit {
       error: (err) => {
         this.isProcessing = false;
         console.error('Erreur lors de la validation', err);
+        alert(err.error?.message || 'Erreur lors de la validation de votre commande. Veuillez vérifier la disponibilité des articles.');
         this.cdr.detectChanges();
       }
     });

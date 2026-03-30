@@ -10,6 +10,7 @@ export interface CartItemResponse {
   imageUrl: string;
   size: string;
   quantity: number;
+  stock: number;
   unitPrice: number;
   subTotal: number;
 }
