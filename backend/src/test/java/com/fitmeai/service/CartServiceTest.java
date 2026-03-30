@@ -12,6 +12,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.ArrayList;
 import java.util.Optional;
 
+import com.fitmeai.service.impl.CartServiceImpl;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -41,9 +43,9 @@ class CartServiceTest {
     @InjectMocks
     private CartServiceImpl cartService;
 
-    // ─────────────────────────────────────────────────────────────
+
     // TEST 3 : Checkout avec un panier vide doit lever une exception
-    // ─────────────────────────────────────────────────────────────
+
     @Test
     @DisplayName("Le checkout doit échouer si le panier est vide")
     void checkout_shouldThrow_whenCartIsEmpty() {
