@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.fitmeai.model.enums.*;
 
 @Slf4j
 @Service
@@ -24,7 +25,7 @@ public class NotificationService {
     private UserRepository userRepository;
 
     @Transactional
-    public void createNotification(User user, String type, String message, Long targetId) {
+    public void createNotification(User user, NotificationType type, String message, Long targetId) {
         Notification notification = new Notification();
         notification.setUser(user);
         notification.setType(type);
@@ -40,7 +41,7 @@ public class NotificationService {
         log.info("Found {} admins to notify", admins.size());
         for (User admin : admins) {
             log.info("Creating notification for admin: {}", admin.getEmail());
-            createNotification(admin, "ORDER_CREATED", message, targetId);
+            createNotification(admin, NotificationType.ORDER_CONFIRMED, message, targetId);
         }
     }
 
