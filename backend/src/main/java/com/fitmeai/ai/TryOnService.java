@@ -213,6 +213,8 @@ public class TryOnService {
         return predictionId;
     }
 
+    
+
     private String waitForReplicatePrediction(String predictionId) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + replicateApiToken);

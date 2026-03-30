@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.fitmeai.model.enums.*;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -49,12 +50,11 @@ public class AdminController {
             long totalUtilisateurs = userRepo.count();
             
             // For calculating status counts and revenue, we use a lighter query or direct count
-            long enCours = orderRepo.countByStatus("PENDING") + 
-                          orderRepo.countByStatus("PAID") + 
-                          orderRepo.countByStatus("SHIPPED") + 
-                          orderRepo.countByStatus("EN_ATTENTE");
+            long enCours = orderRepo.countByStatus(OrderStatus.EN_ATTENTE) + 
+                          orderRepo.countByStatus(OrderStatus.PAID) + 
+                          orderRepo.countByStatus(OrderStatus.SHIPPED);
             
-            long livrees = orderRepo.countByStatus("DELIVERED");
+            long livrees = orderRepo.countByStatus(OrderStatus.DELIVERED);
             
             BigDecimal revenue = orderRepo.sumDeliveredAmount();
             if (revenue == null) revenue = BigDecimal.ZERO;
@@ -101,9 +101,9 @@ public class AdminController {
     public ResponseEntity<Clothing> createClothing(
             @RequestParam("name") String name,
             @RequestParam("description") String description,
-            @RequestParam("category") String category,
-            @RequestParam("gender") String gender,
-            @RequestParam("garmentType") String garmentType,
+            @RequestParam("category") Category category,
+            @RequestParam("gender") Gender gender,
+            @RequestParam("garmentType") GarmentType garmentType,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
             @RequestParam("sizes") String sizes,
@@ -140,9 +140,9 @@ public class AdminController {
             @PathVariable Long id,
             @RequestParam("name") String name,
             @RequestParam("description") String description,
-            @RequestParam("category") String category,
-            @RequestParam("gender") String gender,
-            @RequestParam("garmentType") String garmentType,
+            @RequestParam("category") Category category,
+            @RequestParam("gender") Gender gender,
+            @RequestParam("garmentType") GarmentType garmentType,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
             @RequestParam("sizes") String sizes,
@@ -206,7 +206,11 @@ public class AdminController {
 
     @GetMapping("/orders/status/{status}")
     public ResponseEntity<List<Order>> getOrdersByStatus(@PathVariable String status) {
-        return ResponseEntity.ok(orderRepo.findByStatusOrderByCreatedAtDesc(status.toUpperCase()));
+        try {
+            return ResponseEntity.ok(orderRepo.findByStatusOrderByCreatedAtDesc(OrderStatus.valueOf(status.toUpperCase())));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/orders/{id}/status")
@@ -217,18 +221,23 @@ public class AdminController {
         java.util.Objects.requireNonNull(id);
         return orderRepo.findById(id).map(order -> {
             String newStatus = status.toUpperCase();
-            // Valider le statut
-            if (!List.of("PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED").contains(newStatus)) {
+            if (newStatus.equals("PENDING")) {
+                newStatus = "EN_ATTENTE";
+            }
+            OrderStatus orderStatus;
+            try {
+                orderStatus = OrderStatus.valueOf(newStatus);
+            } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().<Order>build();
             }
 
-            order.setStatus(newStatus);
+            order.setStatus(orderStatus);
             Order saved = orderRepo.save(order);
             log.info("Commande {} -> statut: {}", id, newStatus);
 
             // Notify user
             String userMsg = "Le statut de votre commande #" + id + " est passé à : " + newStatus;
-            notificationService.createNotification(order.getUser(), "ORDER_STATUS_CHANGED", userMsg, id);
+            notificationService.createNotification(order.getUser(), NotificationType.ORDER_STATUS_CHANGED, userMsg, id);
 
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
