@@ -7,9 +7,7 @@ import com.fitmeai.model.OrderItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-/**
- * MapStruct mapper for converting Order and OrderItem entities to their response DTOs.
- */
+
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
 

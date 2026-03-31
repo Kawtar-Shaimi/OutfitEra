@@ -5,9 +5,7 @@ import com.fitmeai.model.CartItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-/**
- * MapStruct mapper for converting CartItem entity to CartItemResponse DTO.
- */
+
 @Mapper(componentModel = "spring")
 public interface CartMapper {
 
