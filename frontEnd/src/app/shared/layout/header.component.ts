@@ -254,7 +254,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.isLoggedIn = !!user;
       this.cdr.detectChanges();
       if (this.isLoggedIn) {
-        this.notificationService.loadUserNotifications();
+        this.loadNotifications();
         this.startPolling();
       } else {
         this.stopPolling();
@@ -278,10 +278,18 @@ export class HeaderComponent implements OnInit, OnDestroy {
     this.stopPolling();
   }
 
+  private loadNotifications() {
+    if (this.authService.isAdmin()) {
+      this.notificationService.loadAdminNotifications();
+    } else {
+      this.notificationService.loadUserNotifications();
+    }
+  }
+
   private startPolling() {
     this.stopPolling();
     this.pollingSub = interval(30000).subscribe(() => {
-      this.notificationService.loadUserNotifications();
+      this.loadNotifications();
     });
   }
 
@@ -303,7 +311,11 @@ export class HeaderComponent implements OnInit, OnDestroy {
   }
 
   markAllAsRead() {
-    this.notificationService.markAllAsReadUser().subscribe();
+    if (this.authService.isAdmin()) {
+      this.notificationService.markAllAsReadAdmin().subscribe();
+    } else {
+      this.notificationService.markAllAsReadUser().subscribe();
+    }
   }
 
   onLogout() {
