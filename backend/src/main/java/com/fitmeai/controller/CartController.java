@@ -5,6 +5,7 @@ import com.fitmeai.dto.response.CartResponse;
 import com.fitmeai.model.User;
 import com.fitmeai.service.AuthService;
 import com.fitmeai.service.CartService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class CartController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<CartResponse> addItem(@RequestBody CartItemRequest request) {
+    public ResponseEntity<CartResponse> addItem(@Valid @RequestBody CartItemRequest request) {
         User user = authService.getCurrentUser();
         return ResponseEntity.ok(cartService.addItemToCart(user, request));
     }
@@ -53,7 +54,7 @@ public class CartController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<java.util.Map<String, Object>> checkout(@RequestBody com.fitmeai.dto.request.CheckoutRequest request) {
+    public ResponseEntity<java.util.Map<String, Object>> checkout(@Valid @RequestBody com.fitmeai.dto.request.CheckoutRequest request) {
         User user = authService.getCurrentUser();
         Long orderId = cartService.checkout(user, request.getPaymentMethod());
         java.util.Map<String, Object> response = new java.util.HashMap<>();
