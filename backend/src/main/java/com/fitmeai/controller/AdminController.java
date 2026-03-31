@@ -1,8 +1,10 @@
 package com.fitmeai.controller;
 
 import com.fitmeai.model.Clothing;
+import com.fitmeai.model.Notification;
 import com.fitmeai.model.Order;
 import com.fitmeai.model.OrderItem;
+import com.fitmeai.model.User;
 import com.fitmeai.repository.ClothingRepository;
 import com.fitmeai.repository.OrderRepository;
 import com.fitmeai.repository.UserRepository;
@@ -293,5 +295,35 @@ public class AdminController {
 
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // ==================== DEBOGAGE ====================
+    @GetMapping("/debug")
+    public ResponseEntity<Map<String, Object>> debugState() {
+        Map<String, Object> debug = new HashMap<>();
+        try {
+            long totalOrders = orderRepo.count();
+            long totalUsers = userRepo.count();
+            List<User> admins = userRepo.findAdmins();
+            
+            debug.put("db_totalOrders", totalOrders);
+            debug.put("db_totalUsers", totalUsers);
+            debug.put("db_adminCount", admins.size());
+            debug.put("db_adminEmails", admins.stream().map(User::getEmail).collect(Collectors.toList()));
+            
+            org.springframework.security.core.Authentication auth = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            if (auth != null) {
+                debug.put("current_user", auth.getName());
+                debug.put("current_authorities", auth.getAuthorities().stream()
+                    .map(oa -> oa.getAuthority()).collect(Collectors.toList()));
+            }
+
+            return ResponseEntity.ok(debug);
+        } catch (Exception e) {
+            debug.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(debug);
+        }
     }
 }
