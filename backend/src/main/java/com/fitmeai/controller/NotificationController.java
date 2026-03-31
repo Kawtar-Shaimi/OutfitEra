@@ -1,5 +1,7 @@
 package com.fitmeai.controller;
 
+import com.fitmeai.dto.response.NotificationResponse;
+import com.fitmeai.mapper.NotificationMapper;
 import com.fitmeai.model.Notification;
 import com.fitmeai.model.User;
 import com.fitmeai.service.AuthService;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -20,17 +23,26 @@ public class NotificationController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private NotificationMapper notificationMapper;
+
     @GetMapping
-    public ResponseEntity<List<Notification>> getMyNotifications() {
+    public ResponseEntity<List<NotificationResponse>> getMyNotifications() {
         User user = authService.getCurrentUser();
-        return ResponseEntity.ok(notificationService.getUserNotifications(user.getId()));
+        List<Notification> notifications = notificationService.getUserNotifications(user.getId());
+        return ResponseEntity.ok(notifications.stream()
+                .map(notificationMapper::toResponse)
+                .collect(Collectors.toList()));
     }
 
     @GetMapping("/admin")
-    public ResponseEntity<List<Notification>> getAdminNotifications() {
+    public ResponseEntity<List<NotificationResponse>> getAdminNotifications() {
         User user = authService.getCurrentUser();
         if (user.getRoles().contains("ADMIN") || user.getRoles().contains("ROLE_ADMIN")) {
-            return ResponseEntity.ok(notificationService.getUserNotifications(user.getId()));
+            List<Notification> notifications = notificationService.getUserNotifications(user.getId());
+            return ResponseEntity.ok(notifications.stream()
+                    .map(notificationMapper::toResponse)
+                    .collect(Collectors.toList()));
         }
         return ResponseEntity.status(403).build();
     }

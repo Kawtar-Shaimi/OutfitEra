@@ -208,18 +208,27 @@ public class AdminController {
         
         List<OrderResponse> responses = orders.stream()
                 .map(order -> {
-                    OrderResponse res = orderMapper.toResponse(order);
-                    // Manually calculate subTotals for each item as done in OrderServiceImpl
-                    if (order.getItems() != null && res.getItems() != null) {
-                        for (int i = 0; i < order.getItems().size(); i++) {
-                            OrderItem item = order.getItems().get(i);
-                            OrderItemResponse itemRes = res.getItems().get(i);
-                            BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
-                            itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                    try {
+                        OrderResponse res = orderMapper.toResponse(order);
+                        // Manually calculate subTotals for each item as done in OrderServiceImpl
+                        if (order.getItems() != null && res.getItems() != null) {
+                            // Safer mapping: join by clothing name or similar if indices don't match, 
+                            // but usually MapStruct maintains order.
+                            int max = Math.min(order.getItems().size(), res.getItems().size());
+                            for (int i = 0; i < max; i++) {
+                                OrderItem item = order.getItems().get(i);
+                                OrderItemResponse itemRes = res.getItems().get(i);
+                                BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
+                                itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                            }
                         }
+                        return res;
+                    } catch (Exception e) {
+                        log.error("Error mapping order #{}", order.getId(), e);
+                        return null;
                     }
-                    return res;
                 })
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toList());
         
         return ResponseEntity.ok(responses);

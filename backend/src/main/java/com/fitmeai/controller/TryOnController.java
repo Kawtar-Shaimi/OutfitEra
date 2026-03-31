@@ -1,6 +1,8 @@
 package com.fitmeai.controller;
 
 import com.fitmeai.ai.TryOnService;
+import com.fitmeai.dto.response.TryOnResultResponse;
+import com.fitmeai.mapper.TryOnMapper;
 import com.fitmeai.model.TryOnResult;
 import com.fitmeai.service.TryOnResultService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/tryon")
@@ -22,8 +25,11 @@ public class TryOnController {
     @Autowired
     private TryOnService aiService;
 
+    @Autowired
+    private TryOnMapper tryOnMapper;
+
     @PostMapping("/process")
-    public ResponseEntity<TryOnResult> processTryOn(
+    public ResponseEntity<TryOnResultResponse> processTryOn(
             Authentication auth,
             @RequestParam("personImage") MultipartFile personImg,
             @RequestParam("clothingId") Long clothingId
@@ -31,7 +37,7 @@ public class TryOnController {
 
         String email = auth.getName();
         TryOnResult result = tryOnService.tryOn(email, personImg, clothingId);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(tryOnMapper.toResponse(result));
     }
 
     /**
@@ -73,21 +79,27 @@ public class TryOnController {
     }
 
     @GetMapping("/my-results")
-    public ResponseEntity<List<TryOnResult>> getMyResults(Authentication auth) {
+    public ResponseEntity<List<TryOnResultResponse>> getMyResults(Authentication auth) {
         String email = auth.getName();
-        return ResponseEntity.ok(tryOnService.getUserResults(email));
+        List<TryOnResult> results = tryOnService.getUserResults(email);
+        return ResponseEntity.ok(results.stream()
+                .map(tryOnMapper::toResponse)
+                .collect(Collectors.toList()));
     }
 
     @GetMapping("/public")
-    public ResponseEntity<List<TryOnResult>> getPublicResults() {
-        return ResponseEntity.ok(tryOnService.getPublicResults());
+    public ResponseEntity<List<TryOnResultResponse>> getPublicResults() {
+        List<TryOnResult> results = tryOnService.getPublicResults();
+        return ResponseEntity.ok(results.stream()
+                .map(tryOnMapper::toResponse)
+                .collect(Collectors.toList()));
     }
 
     /**
      * Sauvegarder une image base64 dans la galerie de l'utilisateur
      */
     @PostMapping("/save-to-gallery")
-    public ResponseEntity<TryOnResult> saveToGallery(
+    public ResponseEntity<TryOnResultResponse> saveToGallery(
             Authentication auth,
             @RequestBody Map<String, Object> payload
     ) throws IOException {
@@ -98,7 +110,7 @@ public class TryOnController {
             Long.parseLong(payload.get("clothingId").toString()) : null;
 
         TryOnResult result = tryOnService.saveToGallery(email, imageBase64, modelName, clothingId);
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(tryOnMapper.toResponse(result));
     }
 
     /**
