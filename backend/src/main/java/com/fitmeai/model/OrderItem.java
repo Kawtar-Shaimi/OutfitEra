@@ -35,5 +35,4 @@ public class OrderItem {
     @Column(nullable = false)
     private BigDecimal priceAtOrder; // Prix au moment de la commande (peut varier avec le temps)
 
-    // TODO: Ajouter validation pour s'assurer que le stock est suffisant
 }

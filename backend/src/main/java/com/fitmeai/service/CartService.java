@@ -6,9 +6,14 @@ import com.fitmeai.model.User;
 
 public interface CartService {
     CartResponse getCart(User user);
+
     CartResponse addItemToCart(User user, CartItemRequest request);
+
     CartResponse updateItemQuantity(User user, Long itemId, Integer quantity);
+
     CartResponse removeItemFromCart(User user, Long itemId);
+
     void clearCart(User user);
+
     Long checkout(User user, String paymentMethod);
 }

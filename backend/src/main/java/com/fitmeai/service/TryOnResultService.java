@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import com.fitmeai.model.enums.*;
 
 @Service
 public class TryOnResultService {
@@ -61,7 +62,7 @@ public class TryOnResultService {
         result.setClothing(clothing);
         result.setUserImageUrl(userImgUrl);
         result.setResultImageUrl(resultImgUrl);
-        result.setStatus("PENDING");
+        result.setStatus(TryOnStatus.PENDING);
 
         return resultRepo.save(result);
     }
@@ -96,8 +97,8 @@ public class TryOnResultService {
         result.setUser(user);
         result.setUserImageUrl("");
         result.setResultImageUrl(resultImgUrl);
-        result.setModelName(modelName);
-        result.setStatus("APPROVED");
+        result.setModelName(AIModelName.valueOf(modelName.replace(" ", "_").toUpperCase()));
+        result.setStatus(TryOnStatus.APPROVED);
 
         if (clothingId != null) {
             Clothing clothing = clothingRepo.findById(clothingId).orElse(null);

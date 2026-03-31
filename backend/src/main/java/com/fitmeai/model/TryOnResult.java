@@ -5,6 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+import com.fitmeai.model.enums.AIModelName;
+import com.fitmeai.model.enums.TryOnStatus;
+
 @Entity
 @Table(name = "tryon_results")
 @Data
@@ -29,9 +32,11 @@ public class TryOnResult {
     @Column(nullable = false)
     private String resultImageUrl;
 
-    private String modelName; // IDM-VTON, FASHN AI
+    @Enumerated(EnumType.STRING)
+    private AIModelName modelName; // IDM-VTON, FASHN AI
 
-    private String status; // PENDING, APPROVED, REJECTED
+    @Enumerated(EnumType.STRING)
+    private TryOnStatus status; // PENDING, APPROVED, REJECTED
 
     private boolean isPublic = false;
 
@@ -41,7 +46,7 @@ public class TryOnResult {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) {
-            status = "PENDING";
+            status = TryOnStatus.PENDING;
         }
     }
 }

@@ -11,9 +11,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -35,8 +39,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             try {
                 username = jwtUtil.extractUsername(token);
+            } catch (ExpiredJwtException e) {
+                log.warn("Le token JWT a expiré pour un utilisateur: {}", e.getMessage());
+                req.setAttribute("expired", e.getMessage());
+            } catch (SignatureException e) {
+                log.error("Tentative d'utilisation d'un token falsifié ou signature invalide: {}", e.getMessage());
             } catch (Exception e) {
-                // Token invalide ou expiré, on continue sans authentification
+                log.error("Erreur inattendue lors de la lecture du token JWT", e);
             }
         }
 

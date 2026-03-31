@@ -1,5 +1,6 @@
 package com.fitmeai.service.impl;
 
+import com.fitmeai.mapper.CartMapper;
 import com.fitmeai.service.CartService;
 import com.fitmeai.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,9 @@ public class CartServiceImpl implements CartService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private CartMapper cartMapper;
+
     private Cart getOrCreateCart(User user) {
         return cartRepository.findByUserId(user.getId()).orElseGet(() -> {
             Cart cart = new Cart();
@@ -52,19 +56,10 @@ public class CartServiceImpl implements CartService {
         CartResponse response = new CartResponse();
 
         response.setItems(cart.getItems().stream().map(item -> {
-            CartItemResponse ir = new CartItemResponse();
-            ir.setId(item.getId());
-            ir.setClothingId(item.getClothing().getId());
-            ir.setClothingName(item.getClothing().getName());
-            ir.setImageUrl(item.getClothing().getImageUrl());
-            ir.setSize(item.getSize());
-            ir.setQuantity(item.getQuantity());
-            ir.setStock(item.getClothing().getStock());
-
-            BigDecimal price = item.getClothing().getPrice() != null ? item.getClothing().getPrice() : BigDecimal.ZERO;
-            ir.setUnitPrice(price);
+            CartItemResponse ir = cartMapper.toResponse(item);
+            // subTotal is computed (price * quantity) - not a direct field mapping
+            BigDecimal price = ir.getUnitPrice() != null ? ir.getUnitPrice() : BigDecimal.ZERO;
             ir.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
-
             return ir;
         }).collect(Collectors.toList()));
 
