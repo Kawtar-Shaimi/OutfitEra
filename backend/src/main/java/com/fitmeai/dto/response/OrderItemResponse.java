@@ -13,4 +13,13 @@ public class OrderItemResponse {
     private Integer quantity;
     private BigDecimal priceAtOrder;
     private BigDecimal subTotal;
+    
+    // Frontend Admin expects item.clothing.name
+    private ClothingInfo clothing;
+
+    @Data
+    public static class ClothingInfo {
+        private String name;
+        private BigDecimal price;
+    }
 }

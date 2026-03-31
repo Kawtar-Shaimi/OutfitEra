@@ -2,6 +2,7 @@ package com.fitmeai.controller;
 
 import com.fitmeai.model.Clothing;
 import com.fitmeai.model.Order;
+import com.fitmeai.model.OrderItem;
 import com.fitmeai.repository.ClothingRepository;
 import com.fitmeai.repository.OrderRepository;
 import com.fitmeai.repository.UserRepository;
@@ -12,10 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.fitmeai.dto.response.OrderItemResponse;
+import com.fitmeai.dto.response.OrderResponse;
+import com.fitmeai.mapper.OrderMapper;
 import com.fitmeai.model.enums.*;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -187,27 +192,74 @@ public class AdminController {
         return ResponseEntity.notFound().build();
     }
 
+    @Autowired
+    private OrderMapper orderMapper;
+
     // ==================== GESTION COMMANDES ====================
 
     @GetMapping("/orders")
-    public ResponseEntity<List<Order>> getAllOrders() {
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
         List<Order> orders = orderRepo.findAllByOrderByCreatedAtDesc();
         log.info("Admin fetching all orders. Found: {}", orders.size());
-        return ResponseEntity.ok(orders);
+        
+        List<OrderResponse> responses = orders.stream()
+                .map(order -> {
+                    OrderResponse res = orderMapper.toResponse(order);
+                    // Manually calculate subTotals for each item as done in OrderServiceImpl
+                    if (order.getItems() != null && res.getItems() != null) {
+                        for (int i = 0; i < order.getItems().size(); i++) {
+                            OrderItem item = order.getItems().get(i);
+                            OrderItemResponse itemRes = res.getItems().get(i);
+                            BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
+                            itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                        }
+                    }
+                    return res;
+                })
+                .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/orders/{id}")
-    public ResponseEntity<Order> getOrder(@PathVariable Long id) {
+    public ResponseEntity<OrderResponse> getOrder(@PathVariable Long id) {
         java.util.Objects.requireNonNull(id);
         return orderRepo.findById(id)
-                .map(ResponseEntity::ok)
+                .map(order -> {
+                    OrderResponse res = orderMapper.toResponse(order);
+                    // Calculate subTotals
+                    if (order.getItems() != null && res.getItems() != null) {
+                        for (int i = 0; i < order.getItems().size(); i++) {
+                            OrderItem item = order.getItems().get(i);
+                            OrderItemResponse itemRes = res.getItems().get(i);
+                            BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
+                            itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                        }
+                    }
+                    return ResponseEntity.ok(res);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/orders/status/{status}")
-    public ResponseEntity<List<Order>> getOrdersByStatus(@PathVariable String status) {
+    public ResponseEntity<List<OrderResponse>> getOrdersByStatus(@PathVariable String status) {
         try {
-            return ResponseEntity.ok(orderRepo.findByStatusOrderByCreatedAtDesc(OrderStatus.valueOf(status.toUpperCase())));
+            List<Order> orders = orderRepo.findByStatusOrderByCreatedAtDesc(OrderStatus.valueOf(status.toUpperCase()));
+            List<OrderResponse> responses = orders.stream()
+                    .map(order -> {
+                        OrderResponse res = orderMapper.toResponse(order);
+                        if (order.getItems() != null && res.getItems() != null) {
+                            for (int i = 0; i < order.getItems().size(); i++) {
+                                OrderItem item = order.getItems().get(i);
+                                OrderItemResponse itemRes = res.getItems().get(i);
+                                BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
+                                itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                            }
+                        }
+                        return res;
+                    })
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(responses);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }

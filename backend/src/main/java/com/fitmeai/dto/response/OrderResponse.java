@@ -11,6 +11,7 @@ import com.fitmeai.model.enums.PaymentMethod;
 @Data
 public class OrderResponse {
     private Long id;
+    private UserResponse user;
     private BigDecimal totalAmount;
     private OrderStatus status;
     private PaymentMethod paymentMethod;
