@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fitmeai.model.enums.OrderStatus;
+import com.fitmeai.model.enums.PaymentMethod;
+
 @Entity
 @Table(name = "orders")
 @Data
@@ -22,16 +25,18 @@ public class Order {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
     @Column(nullable = false)
     private BigDecimal totalAmount;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // EN_ATTENTE, PAID, SHIPPED, DELIVERED, CANCELLED
+    private OrderStatus status;
 
-    private String paymentMethod; // CARD, CASH
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
 
     private String shippingAddress;
 
@@ -43,7 +48,7 @@ public class Order {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (status == null) {
-            status = "EN_ATTENTE";
+            status = OrderStatus.EN_ATTENTE;
         }
     }
 
@@ -51,8 +56,4 @@ public class Order {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    // TODO: Implémenter logique de changement de statut
-    // public void markAsPaid() { this.status = "PAID"; }
-    // public void markAsShipped() { this.status = "SHIPPED"; }
 }

@@ -8,6 +8,10 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.fitmeai.model.enums.Category;
+import com.fitmeai.model.enums.Gender;
+import com.fitmeai.model.enums.GarmentType;
+
 @Entity
 @Table(name = "clothing")
 @Data
@@ -23,14 +27,17 @@ public class Clothing {
 
     private String description;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String category; // TOP, BOTTOM, DRESS, SHOES, ACCESSORY
+    private Category category;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String gender; // HOMME, FEMME, UNISEX
+    private Gender gender;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String garmentType; // upper_body, lower_body, dresses (pour l'IA)
+    private GarmentType garmentType;
 
     @Column(nullable = false)
     private BigDecimal price;

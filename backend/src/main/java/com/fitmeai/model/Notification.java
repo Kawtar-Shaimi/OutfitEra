@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+import com.fitmeai.model.enums.NotificationType;
+
 @Entity
 @Table(name = "notifications")
 @Data
@@ -19,8 +21,9 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String type; // TRYON_APPROVED, TRYON_REJECTED, BADGE_EARNED, ORDER_CONFIRMED, etc.
+    private NotificationType type;
 
     @Column(nullable = false)
     private String message;

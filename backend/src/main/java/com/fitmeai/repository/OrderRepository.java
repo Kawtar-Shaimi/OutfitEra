@@ -1,6 +1,7 @@
 package com.fitmeai.repository;
 
 import com.fitmeai.model.Order;
+import com.fitmeai.model.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    List<Order> findByStatusOrderByCreatedAtDesc(String status);
+    List<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status);
 
     List<Order> findAllByOrderByCreatedAtDesc();
 
@@ -20,7 +21,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countAll();
 
     @Query("SELECT COUNT(o) FROM Order o WHERE o.status = ?1")
-    long countByStatus(String status);
+    long countByStatus(OrderStatus status);
 
     @Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.status = 'DELIVERED'")
     java.math.BigDecimal sumDeliveredAmount();
