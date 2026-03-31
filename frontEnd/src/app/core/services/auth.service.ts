@@ -82,7 +82,7 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const roles = payload.roles || [];
-      return roles.includes('ADMIN');
+      return roles.includes('ADMIN') || roles.includes('ROLE_ADMIN');
     } catch {
       return false;
     }

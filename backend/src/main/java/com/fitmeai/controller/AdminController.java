@@ -340,7 +340,48 @@ public class AdminController {
             String userMsg = "Le statut de votre commande #" + id + " est passé à : " + newStatus;
             notificationService.createNotification(order.getUser(), NotificationType.ORDER_STATUS_CHANGED, userMsg, id);
 
-            return ResponseEntity.ok(saved);
+            // Return DTO manually mapped
+            OrderResponse res = new OrderResponse();
+            res.setId(saved.getId());
+            res.setTotalAmount(saved.getTotalAmount());
+            res.setStatus(saved.getStatus());
+            res.setPaymentMethod(saved.getPaymentMethod());
+            res.setShippingAddress(saved.getShippingAddress());
+            res.setCreatedAt(saved.getCreatedAt());
+            
+            if (saved.getUser() != null) {
+                com.fitmeai.dto.response.UserResponse ur = new com.fitmeai.dto.response.UserResponse();
+                ur.setId(saved.getUser().getId());
+                ur.setEmail(saved.getUser().getEmail());
+                ur.setFirstName(saved.getUser().getFirstName());
+                ur.setLastName(saved.getUser().getLastName());
+                res.setUser(ur);
+            }
+            
+            List<OrderItemResponse> itemResponses = new ArrayList<>();
+            if (saved.getItems() != null) {
+                for (OrderItem oi : saved.getItems()) {
+                    OrderItemResponse ir = new OrderItemResponse();
+                    ir.setId(oi.getId());
+                    ir.setQuantity(oi.getQuantity());
+                    ir.setSize(oi.getSize());
+                    ir.setPriceAtOrder(oi.getPriceAtOrder());
+                    if (oi.getClothing() != null) {
+                        ir.setClothingId(oi.getClothing().getId());
+                        ir.setClothingName(oi.getClothing().getName());
+                        OrderItemResponse.ClothingInfo ci = new OrderItemResponse.ClothingInfo();
+                        ci.setName(oi.getClothing().getName());
+                        ci.setPrice(oi.getClothing().getPrice());
+                        ir.setClothing(ci);
+                    }
+                    BigDecimal price = oi.getPriceAtOrder() != null ? oi.getPriceAtOrder() : BigDecimal.ZERO;
+                    ir.setSubTotal(price.multiply(BigDecimal.valueOf(oi.getQuantity())));
+                    itemResponses.add(ir);
+                }
+            }
+            res.setItems(itemResponses);
+
+            return ResponseEntity.ok(res);
         }).orElse(ResponseEntity.notFound().build());
     }
 
