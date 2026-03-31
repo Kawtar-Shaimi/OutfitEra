@@ -212,7 +212,14 @@ public class AdminController {
                 OrderResponse res = new OrderResponse();
                 res.setId(o.getId());
                 res.setTotalAmount(o.getTotalAmount());
-                res.setStatus(o.getStatus());
+                
+                // Normalisation du statut pour le frontend (toujours PENDING pour les deux cas internes)
+                if (o.getStatus() == OrderStatus.PENDING || o.getStatus() == OrderStatus.EN_ATTENTE) {
+                    res.setStatus(OrderStatus.PENDING);
+                } else {
+                    res.setStatus(o.getStatus());
+                }
+                
                 res.setPaymentMethod(o.getPaymentMethod());
                 res.setShippingAddress(o.getShippingAddress());
                 res.setCreatedAt(o.getCreatedAt());
