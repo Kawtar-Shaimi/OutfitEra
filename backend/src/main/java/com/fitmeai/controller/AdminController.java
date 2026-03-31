@@ -58,7 +58,7 @@ public class AdminController {
             long totalUtilisateurs = userRepo.count();
             
             // For calculating status counts and revenue, we use a lighter query or direct count
-            long enCours = orderRepo.countByStatus(OrderStatus.EN_ATTENTE) + 
+            long enCours = orderRepo.countByStatus(OrderStatus.PENDING) + 
                           orderRepo.countByStatus(OrderStatus.PAID) + 
                           orderRepo.countByStatus(OrderStatus.SHIPPED);
             
@@ -206,22 +206,57 @@ public class AdminController {
         List<Order> orders = orderRepo.findAllByOrderByCreatedAtDesc();
         log.info("Admin fetching all orders. Found: {}", orders.size());
         
-        List<OrderResponse> responses = orders.stream()
-                .map(order -> {
-                    OrderResponse res = orderMapper.toResponse(order);
-                    // Manually calculate subTotals for each item as done in OrderServiceImpl
-                    if (order.getItems() != null && res.getItems() != null) {
-                        int max = Math.min(order.getItems().size(), res.getItems().size());
-                        for (int i = 0; i < max; i++) {
-                            OrderItem item = order.getItems().get(i);
-                            OrderItemResponse itemRes = res.getItems().get(i);
-                            BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
-                            itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+        List<OrderResponse> responses = new ArrayList<>();
+        for (Order o : orders) {
+            try {
+                OrderResponse res = new OrderResponse();
+                res.setId(o.getId());
+                res.setTotalAmount(o.getTotalAmount());
+                res.setStatus(o.getStatus());
+                res.setPaymentMethod(o.getPaymentMethod());
+                res.setShippingAddress(o.getShippingAddress());
+                res.setCreatedAt(o.getCreatedAt());
+                
+                if (o.getUser() != null) {
+                    com.fitmeai.dto.response.UserResponse ur = new com.fitmeai.dto.response.UserResponse();
+                    ur.setId(o.getUser().getId());
+                    ur.setEmail(o.getUser().getEmail());
+                    ur.setFirstName(o.getUser().getFirstName());
+                    ur.setLastName(o.getUser().getLastName());
+                    res.setUser(ur);
+                }
+                
+                List<OrderItemResponse> itemResponses = new ArrayList<>();
+                if (o.getItems() != null) {
+                    for (OrderItem oi : o.getItems()) {
+                        OrderItemResponse ir = new OrderItemResponse();
+                        ir.setId(oi.getId());
+                        ir.setQuantity(oi.getQuantity());
+                        ir.setSize(oi.getSize());
+                        ir.setPriceAtOrder(oi.getPriceAtOrder());
+                        
+                        if (oi.getClothing() != null) {
+                            ir.setClothingId(oi.getClothing().getId());
+                            ir.setClothingName(oi.getClothing().getName());
+                            ir.setImageUrl(oi.getClothing().getImageUrl());
+                            
+                            OrderItemResponse.ClothingInfo ci = new OrderItemResponse.ClothingInfo();
+                            ci.setName(oi.getClothing().getName());
+                            ci.setPrice(oi.getClothing().getPrice());
+                            ir.setClothing(ci);
                         }
+                        
+                        BigDecimal price = oi.getPriceAtOrder() != null ? oi.getPriceAtOrder() : BigDecimal.ZERO;
+                        ir.setSubTotal(price.multiply(BigDecimal.valueOf(oi.getQuantity())));
+                        itemResponses.add(ir);
                     }
-                    return res;
-                })
-                .collect(Collectors.toList());
+                }
+                res.setItems(itemResponses);
+                responses.add(res);
+            } catch (Exception e) {
+                log.error("Manual mapping failed for order #{}", o.getId(), e);
+            }
+        }
         
         return ResponseEntity.ok(responses);
     }
@@ -281,7 +316,7 @@ public class AdminController {
         return orderRepo.findById(id).map(order -> {
             String newStatus = status.toUpperCase();
             if (newStatus.equals("PENDING")) {
-                newStatus = "EN_ATTENTE";
+                newStatus = "PENDING";
             }
             OrderStatus orderStatus;
             try {

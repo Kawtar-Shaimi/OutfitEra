@@ -48,7 +48,7 @@ public class Order {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
         if (status == null) {
-            status = OrderStatus.EN_ATTENTE;
+            status = OrderStatus.PENDING;
         }
     }
 

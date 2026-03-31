@@ -152,7 +152,7 @@ public class CartServiceImpl implements CartService {
         Order order = new Order();
         order.setUser(user);
         order.setPaymentMethod(PaymentMethod.valueOf(paymentMethod.toUpperCase()));
-        order.setStatus(OrderStatus.EN_ATTENTE);
+        order.setStatus(OrderStatus.PENDING);
 
         BigDecimal total = BigDecimal.ZERO;
         for (CartItem cartItem : cart.getItems()) {

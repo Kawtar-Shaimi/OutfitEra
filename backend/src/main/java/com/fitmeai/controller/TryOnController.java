@@ -84,18 +84,46 @@ public class TryOnController {
     public ResponseEntity<List<TryOnResultResponse>> getMyResults(Authentication auth) {
         String email = auth.getName();
         List<TryOnResult> results = tryOnService.getUserResults(email);
-        return ResponseEntity.ok(results.stream()
-                .map(tryOnMapper::toResponse)
-                .collect(Collectors.toList()));
+        List<TryOnResultResponse> responses = new ArrayList<>();
+        for (TryOnResult r : results) {
+            TryOnResultResponse res = new TryOnResultResponse();
+            res.setId(r.getId());
+            res.setUserImageUrl(r.getUserImageUrl());
+            res.setResultImageUrl(r.getResultImageUrl());
+            res.setModelName(r.getModelName());
+            res.setStatus(r.getStatus());
+            res.setPublic(r.isPublic());
+            res.setCreatedAt(r.getCreatedAt());
+            if (r.getClothing() != null) {
+                res.setClothingId(r.getClothing().getId());
+                res.setClothingName(r.getClothing().getName());
+            }
+            responses.add(res);
+        }
+        return ResponseEntity.ok(responses);
     }
 
     @Transactional(readOnly = true)
     @GetMapping("/public")
     public ResponseEntity<List<TryOnResultResponse>> getPublicResults() {
         List<TryOnResult> results = tryOnService.getPublicResults();
-        return ResponseEntity.ok(results.stream()
-                .map(tryOnMapper::toResponse)
-                .collect(Collectors.toList()));
+        List<TryOnResultResponse> responses = new ArrayList<>();
+        for (TryOnResult r : results) {
+            TryOnResultResponse res = new TryOnResultResponse();
+            res.setId(r.getId());
+            res.setUserImageUrl(r.getUserImageUrl());
+            res.setResultImageUrl(r.getResultImageUrl());
+            res.setModelName(r.getModelName());
+            res.setStatus(r.getStatus());
+            res.setPublic(r.isPublic());
+            res.setCreatedAt(r.getCreatedAt());
+            if (r.getClothing() != null) {
+                res.setClothingId(r.getClothing().getId());
+                res.setClothingName(r.getClothing().getName());
+            }
+            responses.add(res);
+        }
+        return ResponseEntity.ok(responses);
     }
 
     /**
