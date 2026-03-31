@@ -13,6 +13,7 @@ import com.fitmeai.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.fitmeai.dto.response.OrderItemResponse;
@@ -199,6 +200,7 @@ public class AdminController {
 
     // ==================== GESTION COMMANDES ====================
 
+    @Transactional(readOnly = true)
     @GetMapping("/orders")
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
         List<Order> orders = orderRepo.findAllByOrderByCreatedAtDesc();
@@ -223,6 +225,7 @@ public class AdminController {
         return ResponseEntity.ok(responses);
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/orders/{id}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable Long id) {
         java.util.Objects.requireNonNull(id);
@@ -243,6 +246,7 @@ public class AdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/orders/status/{status}")
     public ResponseEntity<List<OrderResponse>> getOrdersByStatus(@PathVariable String status) {
         try {
