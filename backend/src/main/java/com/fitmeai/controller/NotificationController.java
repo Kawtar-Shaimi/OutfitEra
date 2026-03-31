@@ -1,5 +1,6 @@
 package com.fitmeai.controller;
 
+import org.springframework.transaction.annotation.Transactional;
 import com.fitmeai.dto.response.NotificationResponse;
 import com.fitmeai.mapper.NotificationMapper;
 import com.fitmeai.model.Notification;
@@ -26,6 +27,7 @@ public class NotificationController {
     @Autowired
     private NotificationMapper notificationMapper;
 
+    @Transactional(readOnly = true)
     @GetMapping
     public ResponseEntity<List<NotificationResponse>> getMyNotifications() {
         User user = authService.getCurrentUser();
@@ -35,6 +37,7 @@ public class NotificationController {
                 .collect(Collectors.toList()));
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/admin")
     public ResponseEntity<List<NotificationResponse>> getAdminNotifications() {
         User user = authService.getCurrentUser();

@@ -8,6 +8,7 @@ import com.fitmeai.service.TryOnResultService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -78,6 +79,7 @@ public class TryOnController {
         return data;
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/my-results")
     public ResponseEntity<List<TryOnResultResponse>> getMyResults(Authentication auth) {
         String email = auth.getName();
@@ -87,6 +89,7 @@ public class TryOnController {
                 .collect(Collectors.toList()));
     }
 
+    @Transactional(readOnly = true)
     @GetMapping("/public")
     public ResponseEntity<List<TryOnResultResponse>> getPublicResults() {
         List<TryOnResult> results = tryOnService.getPublicResults();

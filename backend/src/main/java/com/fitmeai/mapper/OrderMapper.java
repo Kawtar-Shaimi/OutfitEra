@@ -7,8 +7,7 @@ import com.fitmeai.model.OrderItem;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {UserMapper.class})
 public interface OrderMapper {
 
     OrderResponse toResponse(Order order);
