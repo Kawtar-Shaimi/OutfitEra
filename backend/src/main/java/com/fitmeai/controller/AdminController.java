@@ -274,16 +274,45 @@ public class AdminController {
         java.util.Objects.requireNonNull(id);
         return orderRepo.findById(id)
                 .map(order -> {
-                    OrderResponse res = orderMapper.toResponse(order);
-                    // Calculate subTotals
-                    if (order.getItems() != null && res.getItems() != null) {
-                        for (int i = 0; i < order.getItems().size(); i++) {
-                            OrderItem item = order.getItems().get(i);
-                            OrderItemResponse itemRes = res.getItems().get(i);
-                            BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
-                            itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+                    OrderResponse res = new OrderResponse();
+                    res.setId(order.getId());
+                    res.setTotalAmount(order.getTotalAmount());
+                    res.setStatus(order.getStatus());
+                    res.setPaymentMethod(order.getPaymentMethod());
+                    res.setShippingAddress(order.getShippingAddress());
+                    res.setCreatedAt(order.getCreatedAt());
+                    
+                    if (order.getUser() != null) {
+                        com.fitmeai.dto.response.UserResponse ur = new com.fitmeai.dto.response.UserResponse();
+                        ur.setId(order.getUser().getId());
+                        ur.setEmail(order.getUser().getEmail());
+                        ur.setFirstName(order.getUser().getFirstName());
+                        ur.setLastName(order.getUser().getLastName());
+                        res.setUser(ur);
+                    }
+                    
+                    List<OrderItemResponse> itemResponses = new ArrayList<>();
+                    if (order.getItems() != null) {
+                        for (OrderItem oi : order.getItems()) {
+                            OrderItemResponse ir = new OrderItemResponse();
+                            ir.setId(oi.getId());
+                            ir.setQuantity(oi.getQuantity());
+                            ir.setSize(oi.getSize());
+                            ir.setPriceAtOrder(oi.getPriceAtOrder());
+                            if (oi.getClothing() != null) {
+                                ir.setClothingId(oi.getClothing().getId());
+                                ir.setClothingName(oi.getClothing().getName());
+                                OrderItemResponse.ClothingInfo ci = new OrderItemResponse.ClothingInfo();
+                                ci.setName(oi.getClothing().getName());
+                                ci.setPrice(oi.getClothing().getPrice());
+                                ir.setClothing(ci);
+                            }
+                            BigDecimal price = oi.getPriceAtOrder() != null ? oi.getPriceAtOrder() : BigDecimal.ZERO;
+                            ir.setSubTotal(price.multiply(BigDecimal.valueOf(oi.getQuantity())));
+                            itemResponses.add(ir);
                         }
                     }
+                    res.setItems(itemResponses);
                     return ResponseEntity.ok(res);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -294,20 +323,49 @@ public class AdminController {
     public ResponseEntity<List<OrderResponse>> getOrdersByStatus(@PathVariable String status) {
         try {
             List<Order> orders = orderRepo.findByStatusOrderByCreatedAtDesc(OrderStatus.valueOf(status.toUpperCase()));
-            List<OrderResponse> responses = orders.stream()
-                    .map(order -> {
-                        OrderResponse res = orderMapper.toResponse(order);
-                        if (order.getItems() != null && res.getItems() != null) {
-                            for (int i = 0; i < order.getItems().size(); i++) {
-                                OrderItem item = order.getItems().get(i);
-                                OrderItemResponse itemRes = res.getItems().get(i);
-                                BigDecimal price = itemRes.getPriceAtOrder() != null ? itemRes.getPriceAtOrder() : BigDecimal.ZERO;
-                                itemRes.setSubTotal(price.multiply(BigDecimal.valueOf(item.getQuantity())));
-                            }
+            List<OrderResponse> responses = new ArrayList<>();
+            for (Order o : orders) {
+                OrderResponse res = new OrderResponse();
+                res.setId(o.getId());
+                res.setTotalAmount(o.getTotalAmount());
+                res.setStatus(o.getStatus());
+                res.setPaymentMethod(o.getPaymentMethod());
+                res.setShippingAddress(o.getShippingAddress());
+                res.setCreatedAt(o.getCreatedAt());
+                
+                if (o.getUser() != null) {
+                    com.fitmeai.dto.response.UserResponse ur = new com.fitmeai.dto.response.UserResponse();
+                    ur.setId(o.getUser().getId());
+                    ur.setEmail(o.getUser().getEmail());
+                    ur.setFirstName(o.getUser().getFirstName());
+                    ur.setLastName(o.getUser().getLastName());
+                    res.setUser(ur);
+                }
+                
+                List<OrderItemResponse> itemResponses = new ArrayList<>();
+                if (o.getItems() != null) {
+                    for (OrderItem oi : o.getItems()) {
+                        OrderItemResponse ir = new OrderItemResponse();
+                        ir.setId(oi.getId());
+                        ir.setQuantity(oi.getQuantity());
+                        ir.setSize(oi.getSize());
+                        ir.setPriceAtOrder(oi.getPriceAtOrder());
+                        if (oi.getClothing() != null) {
+                            ir.setClothingId(oi.getClothing().getId());
+                            ir.setClothingName(oi.getClothing().getName());
+                            OrderItemResponse.ClothingInfo ci = new OrderItemResponse.ClothingInfo();
+                            ci.setName(oi.getClothing().getName());
+                            ci.setPrice(oi.getClothing().getPrice());
+                            ir.setClothing(ci);
                         }
-                        return res;
-                    })
-                    .collect(Collectors.toList());
+                        BigDecimal price = oi.getPriceAtOrder() != null ? oi.getPriceAtOrder() : BigDecimal.ZERO;
+                        ir.setSubTotal(price.multiply(BigDecimal.valueOf(oi.getQuantity())));
+                        itemResponses.add(ir);
+                    }
+                }
+                res.setItems(itemResponses);
+                responses.add(res);
+            }
             return ResponseEntity.ok(responses);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -329,7 +387,7 @@ public class AdminController {
             try {
                 orderStatus = OrderStatus.valueOf(newStatus);
             } catch (IllegalArgumentException e) {
-                return ResponseEntity.badRequest().<Order>build();
+                return ResponseEntity.badRequest().<OrderResponse>build();
             }
 
             order.setStatus(orderStatus);
