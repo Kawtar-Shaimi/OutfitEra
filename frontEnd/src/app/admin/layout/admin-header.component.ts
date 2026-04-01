@@ -211,11 +211,15 @@ export class AdminHeaderComponent implements OnInit, OnDestroy {
 
   toggleNotifications() {
     this.showNotifications = !this.showNotifications;
+    if (this.notificationCount > 0) {
+      const currentCount = this.notificationCount;
+      this.notificationCount = 0;
+      this.notificationService.markAllAsReadAdmin().subscribe({
+        error: () => this.notificationCount = currentCount
+      });
+    }
     if (this.showNotifications) {
       this.notificationService.loadAdminNotifications();
-      if (this.notificationCount > 0) {
-        this.markAllAsRead();
-      }
     }
   }
 

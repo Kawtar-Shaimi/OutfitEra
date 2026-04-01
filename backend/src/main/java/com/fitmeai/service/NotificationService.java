@@ -37,12 +37,20 @@ public class NotificationService {
 
     @Transactional
     public void notifyAdmins(String message, Long targetId) {
+        log.info("NOTIFYING ADMINS for targetId: {}", targetId);
         List<User> admins = userRepository.findAdmins();
-        log.info("Found {} admins to notify", admins.size());
+        log.info("Admins found in DB: {}", admins.size());
         for (User admin : admins) {
-            log.info("Creating notification for admin: {}", admin.getEmail());
+            log.info("Notifying admin: {} (id: {})", admin.getEmail(), admin.getId());
             createNotification(admin, NotificationType.ORDER_CONFIRMED, message, targetId);
         }
+        if (admins.isEmpty()) {
+            log.warn("!!! CRITICAL: No admins found to notify for order #{} !!!", targetId);
+        }
+    }
+
+    public List<Notification> getAdminAlerts() {
+        return notificationRepository.findAllAdminNotifications();
     }
 
     public List<Notification> getUserNotifications(Long userId) {

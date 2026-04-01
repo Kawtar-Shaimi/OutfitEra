@@ -50,7 +50,7 @@ public class NotificationController {
         User user = authService.getCurrentUser();
         List<NotificationResponse> responses = new ArrayList<>();
         if (user != null && (user.getRoles().contains("ADMIN") || user.getRoles().contains("ROLE_ADMIN"))) {
-            List<Notification> notifications = notificationService.getUserNotifications(user.getId());
+            List<Notification> notifications = notificationService.getAdminAlerts();
             for (Notification n : notifications) {
                 NotificationResponse res = new NotificationResponse();
                 res.setId(n.getId());

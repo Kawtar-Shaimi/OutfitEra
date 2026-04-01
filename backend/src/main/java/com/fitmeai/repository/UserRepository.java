@@ -10,6 +10,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u JOIN u.roles r WHERE r = 'ADMIN' OR r = 'ROLE_ADMIN'")
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u JOIN u.roles r WHERE UPPER(r) LIKE '%ADMIN%'")
     java.util.List<User> findAdmins();
 }

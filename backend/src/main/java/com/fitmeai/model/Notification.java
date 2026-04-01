@@ -30,7 +30,8 @@ public class Notification {
 
     private Long targetId;
 
-    private boolean isRead = false;
+    @Column(name = "is_read")
+    private boolean read = false;
 
     private LocalDateTime createdAt;
 

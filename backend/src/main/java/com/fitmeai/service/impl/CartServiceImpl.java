@@ -83,8 +83,9 @@ public class CartServiceImpl implements CartService {
                 .findFirst();
 
         Integer requestedTotal = existingItem.map(i -> i.getQuantity() + request.getQuantity()).orElse(request.getQuantity());
-        if (clothing.getStock() == null || clothing.getStock() < requestedTotal) {
-            throw new RuntimeException("Stock insuffisant pour l'article: " + clothing.getName());
+        Integer currentStock = clothing.getStock() != null ? clothing.getStock() : 999;
+        if (currentStock < requestedTotal) {
+            throw new RuntimeException("Stock insuffisant pour l'article: " + clothing.getName() + " (Demandé: " + requestedTotal + ", Reste: " + currentStock + ")");
         }
 
         if (existingItem.isPresent()) {
@@ -112,7 +113,8 @@ public class CartServiceImpl implements CartService {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Article non trouvé"));
 
-        if (item.getClothing().getStock() == null || item.getClothing().getStock() < quantity) {
+        Integer currentStock = item.getClothing().getStock() != null ? item.getClothing().getStock() : 999;
+        if (currentStock < quantity) {
             throw new RuntimeException("Stock insuffisant");
         }
 
@@ -158,10 +160,12 @@ public class CartServiceImpl implements CartService {
         for (CartItem cartItem : cart.getItems()) {
             Clothing clothing = cartItem.getClothing();
             
-            if (clothing.getStock() == null || clothing.getStock() < cartItem.getQuantity()) {
-                throw new RuntimeException("Stock insuffisant pour l'article: " + clothing.getName() + " (Reste: " + (clothing.getStock() != null ? clothing.getStock() : 0) + ")");
+            Integer currentStock = clothing.getStock() != null ? clothing.getStock() : 999;
+            if (currentStock < cartItem.getQuantity()) {
+                log.error("STOCK FAIL: {} demandés, seulement {} en stock pour {}", cartItem.getQuantity(), currentStock, clothing.getName());
+                throw new RuntimeException("Stock insuffisant pour l'article: " + clothing.getName() + " (Reste: " + currentStock + ")");
             }
-            clothing.setStock(clothing.getStock() - cartItem.getQuantity());
+            clothing.setStock(currentStock - cartItem.getQuantity());
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
