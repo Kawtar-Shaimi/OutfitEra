@@ -211,6 +211,12 @@ export class AdminHeaderComponent implements OnInit, OnDestroy {
 
   toggleNotifications() {
     this.showNotifications = !this.showNotifications;
+    if (this.showNotifications) {
+      this.notificationService.loadAdminNotifications();
+      if (this.notificationCount > 0) {
+        this.markAllAsRead();
+      }
+    }
   }
 
   onSearch(event: Event) {

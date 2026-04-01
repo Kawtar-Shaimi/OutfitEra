@@ -329,7 +329,7 @@ export class CartComponent implements OnInit {
       error: (err) => {
         this.isProcessing = false;
         console.error('Erreur lors de la validation', err);
-        alert(err.error?.message || 'Erreur lors de la validation de votre commande. Veuillez vérifier la disponibilité des articles.');
+        alert(err.error?.message || err.error?.error || 'Erreur lors de la validation de votre commande. Veuillez vérifier la disponibilité des articles.');
         this.cdr.detectChanges();
       }
     });
