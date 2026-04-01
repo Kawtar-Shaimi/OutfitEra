@@ -109,36 +109,55 @@ public class AdminController {
     public ResponseEntity<Clothing> createClothing(
             @RequestParam("name") String name,
             @RequestParam("description") String description,
-            @RequestParam("category") Category category,
-            @RequestParam("gender") Gender gender,
-            @RequestParam("garmentType") GarmentType garmentType,
+            @RequestParam("category") String categoryStr,
+            @RequestParam("gender") String genderStr,
+            @RequestParam("garmentType") String garmentTypeStr,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
             @RequestParam("sizes") String sizes,
             @RequestParam("image") MultipartFile image
     ) {
         try {
+            log.info("Tentative de création d'article: {}", name);
             String imageUrl = fileStorage.saveFile(image);
 
             Clothing clothing = new Clothing();
             clothing.setName(name);
             clothing.setDescription(description);
-            clothing.setCategory(category);
-            clothing.setGender(gender);
-            clothing.setGarmentType(garmentType);
+            
+            // Conversion robuste des enums avec gestion des erreurs
+            try {
+                clothing.setCategory(Category.valueOf(categoryStr.toUpperCase()));
+                clothing.setGender(Gender.valueOf(genderStr.toUpperCase()));
+                
+                // Si garmentType est vide, on essaie de le déduire de la catégorie
+                if (garmentTypeStr == null || garmentTypeStr.trim().isEmpty()) {
+                    if ("TOP".equalsIgnoreCase(categoryStr)) garmentTypeStr = "UPPER_BODY";
+                    else if ("BOTTOM".equalsIgnoreCase(categoryStr)) garmentTypeStr = "LOWER_BODY";
+                    else if ("DRESS".equalsIgnoreCase(categoryStr)) garmentTypeStr = "DRESSES";
+                }
+                clothing.setGarmentType(GarmentType.valueOf(garmentTypeStr.toUpperCase()));
+            } catch (Exception enumEx) {
+                log.error("Valeur d'énumération invalide: cat={}, gen={}, garment={}", categoryStr, genderStr, garmentTypeStr);
+                throw new IllegalArgumentException("Type ou catégorie d'article invalide");
+            }
+            
             clothing.setPrice(price);
             clothing.setStock(stock);
             clothing.setImageUrl(imageUrl);
 
-            Set<String> sizeSet = new HashSet<>(Arrays.asList(sizes.split(",")));
+            Set<String> sizeSet = new HashSet<>();
+            if (sizes != null && !sizes.trim().isEmpty()) {
+                sizeSet.addAll(Arrays.asList(sizes.split(",")));
+            }
             clothing.setAvailableSizes(sizeSet);
 
             Clothing saved = clothingRepo.save(clothing);
-            log.info("Article créé: {} (id={})", saved.getName(), saved.getId());
+            log.info("Article créé avec succès: {} (id={})", saved.getName(), saved.getId());
 
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
-            log.error("Erreur création article: {}", e.getMessage());
+            log.error("Erreur critique création article '{}': {}", name, e.getMessage(), e);
             return ResponseEntity.badRequest().<Clothing>build();
         }
     }
@@ -148,9 +167,9 @@ public class AdminController {
             @PathVariable Long id,
             @RequestParam("name") String name,
             @RequestParam("description") String description,
-            @RequestParam("category") Category category,
-            @RequestParam("gender") Gender gender,
-            @RequestParam("garmentType") GarmentType garmentType,
+            @RequestParam("category") String categoryStr,
+            @RequestParam("gender") String genderStr,
+            @RequestParam("garmentType") String garmentTypeStr,
             @RequestParam("price") BigDecimal price,
             @RequestParam("stock") Integer stock,
             @RequestParam("sizes") String sizes,
@@ -160,13 +179,31 @@ public class AdminController {
             try {
                 clothing.setName(name);
                 clothing.setDescription(description);
-                clothing.setCategory(category);
-                clothing.setGender(gender);
-                clothing.setGarmentType(garmentType);
+                
+                // Conversion robuste des enums
+                try {
+                    clothing.setCategory(Category.valueOf(categoryStr.toUpperCase()));
+                    clothing.setGender(Gender.valueOf(genderStr.toUpperCase()));
+                    
+                    String effectiveGarmentType = garmentTypeStr;
+                    if (effectiveGarmentType == null || effectiveGarmentType.trim().isEmpty()) {
+                        if ("TOP".equalsIgnoreCase(categoryStr)) effectiveGarmentType = "UPPER_BODY";
+                        else if ("BOTTOM".equalsIgnoreCase(categoryStr)) effectiveGarmentType = "LOWER_BODY";
+                        else if ("DRESS".equalsIgnoreCase(categoryStr)) effectiveGarmentType = "DRESSES";
+                    }
+                    clothing.setGarmentType(GarmentType.valueOf(effectiveGarmentType.toUpperCase()));
+                } catch (Exception enumEx) {
+                    log.error("Valeur d'énumération invalide lors de l'update ID {}: cat={}, gen={}, garment={}", id, categoryStr, genderStr, garmentTypeStr);
+                    return ResponseEntity.badRequest().<Clothing>build();
+                }
+                
                 clothing.setPrice(price);
                 clothing.setStock(stock);
 
-                Set<String> sizeSet = new HashSet<>(Arrays.asList(sizes.split(",")));
+                Set<String> sizeSet = new HashSet<>();
+                if (sizes != null && !sizes.trim().isEmpty()) {
+                    sizeSet.addAll(Arrays.asList(sizes.split(",")));
+                }
                 clothing.setAvailableSizes(sizeSet);
 
                 if (image != null && !image.isEmpty()) {
@@ -175,11 +212,11 @@ public class AdminController {
                 }
 
                 Clothing saved = clothingRepo.save(clothing);
-                log.info("Article modifié: id={}", saved.getId());
+                log.info("Article modifié avec succès: id={}", saved.getId());
 
                 return ResponseEntity.ok(saved);
             } catch (Exception e) {
-                log.error("Erreur modification article: {}", e.getMessage());
+                log.error("Erreur critique modification article id={}: {}", id, e.getMessage(), e);
                 return ResponseEntity.badRequest().<Clothing>build();
             }
         }).orElse(ResponseEntity.notFound().build());

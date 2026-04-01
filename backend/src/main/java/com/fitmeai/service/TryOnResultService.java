@@ -97,8 +97,18 @@ public class TryOnResultService {
         result.setUser(user);
         result.setUserImageUrl("");
         result.setResultImageUrl(resultImgUrl);
-        result.setModelName(AIModelName.valueOf(modelName.replace(" ", "_").toUpperCase()));
+        
+        // Normalisation robuste du nom du modèle vers l'Enum
+        String sanitized = "IDM_VTON";
+        if (modelName != null) {
+            String upper = modelName.toUpperCase();
+            if (upper.contains("IDM")) sanitized = "IDM_VTON";
+            else if (upper.contains("FASHN")) sanitized = "FASHN_AI";
+        }
+        result.setModelName(AIModelName.valueOf(sanitized));
         result.setStatus(TryOnStatus.APPROVED);
+        result.setPublic(false);
+        result.setCreatedAt(java.time.LocalDateTime.now());
 
         if (clothingId != null) {
             Clothing clothing = clothingRepo.findById(clothingId).orElse(null);

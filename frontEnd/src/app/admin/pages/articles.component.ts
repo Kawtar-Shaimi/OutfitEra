@@ -305,13 +305,13 @@ export class AdminArticlesComponent implements OnInit, OnDestroy {
   onCategoryChange() {
     switch (this.form.category) {
       case 'TOP':
-        this.form.garmentType = 'upper_body';
+        this.form.garmentType = 'UPPER_BODY';
         break;
       case 'BOTTOM':
-        this.form.garmentType = 'lower_body';
+        this.form.garmentType = 'LOWER_BODY';
         break;
       case 'DRESS':
-        this.form.garmentType = 'dresses';
+        this.form.garmentType = 'DRESSES';
         break;
       default:
         this.form.garmentType = '';
