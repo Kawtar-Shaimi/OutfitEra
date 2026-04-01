@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminOrder } from '../../core/services/admin.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-admin-commandes',
@@ -142,8 +142,11 @@ import { ActivatedRoute } from '@angular/router';
 
       <!-- Modal détails commande -->
       @if (selectedOrder) {
-        <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div 
+          (click)="selectedOrder = null"
+          class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        >
+          <div (click)="$event.stopPropagation()" class="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6">
               <div class="flex items-center justify-between mb-6">
                 <h2 class="text-xl font-bold">Commande #{{ selectedOrder.id }}</h2>
@@ -214,6 +217,7 @@ export class AdminCommandesComponent implements OnInit {
   constructor(
     private adminService: AdminService, 
     private route: ActivatedRoute,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -230,6 +234,9 @@ export class AdminCommandesComponent implements OnInit {
         if (order) {
           this.selectedOrder = order;
           this.cdr.detectChanges();
+        } else {
+          // Clear query params if order not found to avoid stuck modal logic
+          this.router.navigate([], { relativeTo: this.route, queryParams: { orderId: null }, queryParamsHandling: 'merge' });
         }
       }
     });

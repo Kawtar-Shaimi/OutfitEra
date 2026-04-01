@@ -315,7 +315,7 @@ public class AdminController {
     }
 
     @PutMapping("/orders/{id}/status")
-    public ResponseEntity<Order> updateOrderStatus(
+    public ResponseEntity<OrderResponse> updateOrderStatus(
             @PathVariable Long id,
             @RequestParam("status") String status
     ) {
