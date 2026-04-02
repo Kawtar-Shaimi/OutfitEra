@@ -42,13 +42,7 @@ public class TryOnResultService {
         Clothing clothing = clothingRepo.findById(clothingId)
                 .orElseThrow(() -> new RuntimeException("Clothing not found"));
 
-        // Récupérer l'image du vêtement depuis le système de fichiers
-        // Pour simplifier, on suppose que clothing.getImageUrl() pointe vers un fichier local
-        // Dans un cas réel, il faudrait charger l'image depuis le path
-
-        // Appel IA (IDM-VTON via HF)
-        // Note: ici on passe null pour garmentImg car il faudrait charger le fichier
-        // Pour l'instant, on simule juste la structure
+       
         byte[] resultImg = aiService.processVirtualTryOn(personImg, personImg); // TODO: charger vraie image vêtement
 
         // Sauvegarder les images

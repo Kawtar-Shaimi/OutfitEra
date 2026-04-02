@@ -5,6 +5,7 @@ import com.fitmeai.dto.request.UserUpdateRequest;
 import com.fitmeai.dto.response.UserResponse;
 import com.fitmeai.model.User;
 import com.fitmeai.repository.UserRepository;
+import com.fitmeai.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,9 +15,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepo;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public UserResponse getCurrentUserResponse(User user) {
-        return mapToResponse(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -26,16 +30,6 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.getLastName());
         
         User savedUser = userRepo.save(user);
-        return mapToResponse(savedUser);
-    }
-
-    private UserResponse mapToResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .roles(user.getRoles())
-                .build();
+        return userMapper.toResponse(savedUser);
     }
 }
